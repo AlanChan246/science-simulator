@@ -1,0 +1,2613 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>彈射籃球挑戰賽</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Noto+Sans+TC:wght@300;400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        :root {
+            --primary: #e67e22;
+            --secondary: #2c3e50;
+            --accent: #f1c40f;
+            --glass: rgba(255, 255, 255, 0.95);
+            --shadow: 0 8px 32px rgba(0,0,0,0.4);
+            --success: #27ae60;
+            --danger: #e74c3c;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            font-family: 'Noto Sans TC', sans-serif;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* 統一標題字體 */
+        h1, h2, .hud-text, .budget-amount, .part-price {
+            font-family: 'Orbitron', 'Noto Sans TC', sans-serif;
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* UI Containers */
+        .ui-panel {
+            position: absolute;
+            pointer-events: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: var(--glass);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(8px);
+            max-width: 90%;
+            width: 360px;
+            max-height: 90vh;
+            overflow-y: auto;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 20;
+            transition: opacity 0.3s;
+            border: 1px solid rgba(255,255,255,0.5);
+        }
+
+        #game-hud {
+            position: absolute;
+            top: 15px;
+            left: 20px;
+            width: calc(100% - 40px);
+            pointer-events: none;
+            z-index: 10;
+            display: none;
+            flex-direction: row;
+            justify-content: space-between;
+        }
+
+        h1 { margin: 0 0 5px 0; color: #d35400; text-align: center; font-size: 24px; letter-spacing: 1px; }
+        h2 { margin: 0; color: #2c3e50; text-align: center; font-size: 20px; }
+        p { margin: 0 0 10px 0; color: #666; font-size: 13px; text-align: center;}
+
+        .hud-text {
+            font-size: 28px;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 2px 2px 0px rgba(0,0,0,0.5);
+            font-family: 'Arial Black', sans-serif;
+        }
+        
+        .timer-text { color: var(--accent); }
+
+        .control-group { margin-bottom: 8px; position: relative; }
+        
+        .label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2px;
+        }
+
+        label { font-weight: bold; color: #444; font-size: 13px; }
+
+        .info-btn {
+            background: #bdc3c7;
+            color: white;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            font-size: 11px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: help;
+            margin-left: 5px;
+        }
+        
+        .tooltip {
+            display: none;
+            position: absolute;
+            bottom: 100%;
+            right: 0;
+            background: #34495e;
+            color: #fff;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            width: 180px;
+            z-index: 100;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            margin-bottom: 5px;
+            text-align: left;
+            line-height: 1.4;
+        }
+
+        .info-btn:hover + .tooltip { display: block; }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            accent-color: var(--primary);
+            margin: 5px 0;
+        }
+        
+        select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            font-size: 14px;
+            background: #f9f9f9;
+            cursor: pointer;
+        }
+
+        button {
+            background: linear-gradient(135deg, #e67e22, #d35400);
+            color: white;
+            border: none;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            box-shadow: 0 4px 6px rgba(230, 126, 34, 0.3);
+            margin-top: 5px;
+        }
+
+        button:active { transform: scale(0.98); box-shadow: none; }
+        button:hover { filter: brightness(1.1); }
+        
+        button.secondary {
+            background: #95a5a6;
+            font-size: 13px;
+            padding: 6px 12px;
+            width: auto;
+            box-shadow: none;
+            margin-top: 0;
+        }
+        button.secondary:hover { background: #7f8c8d; }
+
+        .hud-controls {
+            margin-top: 8px;
+            pointer-events: auto;
+            display: flex;
+            gap: 10px;
+        }
+
+        .highscore-box {
+            background: rgba(0,0,0,0.05);
+            border-radius: 8px;
+            padding: 8px;
+            margin-top: 8px;
+        }
+        .hs-title { font-size: 12px; font-weight: bold; color: #555; text-align: center; margin-bottom: 4px; }
+        .hs-list { list-style: none; padding: 0; margin: 0; font-size: 12px; color: #666; }
+        .hs-item { display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px dashed #ddd; }
+
+        body.playing #setup-panel { display: none; }
+        body.playing #game-hud { display: flex; }
+        body.playing #main-menu { display: none; }
+        
+        #modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 50;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Main Menu */
+        #main-menu {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(26, 26, 26, 0.98);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 100;
+            pointer-events: auto;
+        }
+
+        #main-menu h1 {
+            font-size: 3rem;
+            color: #e67e22;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px #e67e22;
+        }
+
+        #main-menu p {
+            color: #95a5a6;
+            font-size: 1.2rem;
+            margin-bottom: 50px;
+        }
+
+        #main-menu .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 300px;
+        }
+
+        /* Name Input Modal */
+        #name-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 150;
+            justify-content: center;
+            align-items: center;
+            pointer-events: auto;
+        }
+
+        #name-modal .modal-content {
+            background: var(--glass);
+            border: 2px solid rgba(230, 126, 34, 0.5);
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 0 50px rgba(230, 126, 34, 0.3);
+            position: relative;
+            pointer-events: auto;
+        }
+
+        #name-modal input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0,0,0,0.1);
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            color: #333;
+            font-size: 1rem;
+            margin-bottom: 20px;
+            font-family: 'Microsoft JhengHei', sans-serif;
+            box-sizing: border-box;
+        }
+
+        #name-modal .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        /* Leaderboard Styles */
+        .leaderboard-card {
+            background: rgba(255,255,255,0.08);
+            padding: 1.5rem;
+            border-radius: 15px;
+            width: 100%;
+            max-width: 400px;
+            border: 2px solid rgba(230, 126, 34, 0.3);
+            box-shadow: 0 0 30px rgba(230, 126, 34, 0.2);
+            margin-bottom: 20px;
+        }
+
+        .leaderboard-card h3 {
+            color: #e67e22;
+            margin: 0 0 20px 0;
+            font-size: 1.5rem;
+            text-shadow: 0 0 10px rgba(230, 126, 34, 0.5);
+            border-bottom: 2px solid rgba(230, 126, 34, 0.3);
+            padding-bottom: 10px;
+        }
+
+        .leaderboard-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            color: #333;
+            font-size: 0.95rem;
+        }
+
+        .leaderboard-row:hover {
+            background: rgba(230, 126, 34, 0.1);
+            border-radius: 5px;
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        .leaderboard-rank {
+            color: #666;
+            font-weight: bold;
+            width: 30px;
+        }
+
+        .leaderboard-name {
+            flex: 1;
+            margin-left: 10px;
+        }
+
+        .leaderboard-score {
+            color: #e67e22;
+            font-weight: bold;
+        }
+
+        .player-result-card {
+            background: linear-gradient(135deg, rgba(230, 126, 34, 0.15), rgba(211, 84, 0, 0.1));
+            border: 2px solid rgba(230, 126, 34, 0.5);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .player-result-score {
+            font-size: 2rem;
+            color: #e67e22;
+            margin: 10px 0;
+            text-shadow: 0 0 20px rgba(230, 126, 34, 0.8);
+        }
+
+        .clear-leaderboard-btn {
+            padding: 8px 15px;
+            font-size: 0.85rem;
+            background: rgba(255,100,100,0.3);
+            border: 1px solid rgba(255,100,100,0.5);
+        }
+
+        /* Budget System */
+        .budget-display {
+            background: rgba(0,0,0,0.05);
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: left;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .budget-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .budget-amount {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--success);
+        }
+
+        .budget-progress-container {
+            width: 100%;
+            height: 12px;
+            background: #eee;
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .budget-progress-bar {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, var(--success), #2ecc71);
+            transition: width 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.3s;
+        }
+
+        .budget-warning .budget-progress-bar {
+            background: linear-gradient(90deg, var(--danger), #ff7675);
+            animation: pulse-red 1s infinite;
+        }
+
+        @keyframes pulse-red {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        /* Part Selection */
+        .part-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            margin: 8px 0;
+            background: white;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid transparent;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .part-icon {
+            font-size: 1.5rem;
+            margin-right: 12px;
+            background: #f8f9fa;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+        }
+
+        .part-option:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            background: #fff;
+        }
+
+        .part-option.selected {
+            background: white;
+            border-color: var(--primary);
+            box-shadow: 0 4px 15px rgba(230, 126, 34, 0.2);
+        }
+
+        .part-option.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #f1f2f6;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        /* Juice Effects */
+        .juice-text {
+            position: absolute;
+            pointer-events: none;
+            z-index: 1000;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            text-shadow: 2px 2px 0px rgba(0,0,0,0.3);
+            animation: juice-float 1s ease-out forwards;
+        }
+
+        @keyframes juice-float {
+            0% { transform: translate(-50%, 0) scale(0.5) rotate(-10deg); opacity: 0; }
+            20% { transform: translate(-50%, -40px) scale(1.2) rotate(5deg); opacity: 1; }
+            100% { transform: translate(-50%, -120px) scale(1) rotate(0deg); opacity: 0; }
+        }
+
+        .part-price {
+            color: #27ae60;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .part-price.expensive {
+            color: #e74c3c;
+        }
+
+        /* Science Modal */
+        #science-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 200;
+            justify-content: center;
+            align-items: center;
+            pointer-events: auto;
+        }
+
+        #science-modal .modal-content {
+            background: var(--glass);
+            border: 2px solid rgba(230, 126, 34, 0.5);
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 0 50px rgba(230, 126, 34, 0.3);
+            position: relative;
+            pointer-events: auto;
+        }
+
+        #science-modal h2 {
+            color: #e67e22;
+            margin: 0 0 20px 0;
+        }
+
+        #science-modal .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid #555;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.5rem;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 3D Canvas Container */
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        #gameCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2;
+        }
+    </style>
+</head>
+<body class="setup-mode">
+
+    <!-- MAIN MENU -->
+    <div id="main-menu">
+        <h1>🏀 彈射籃球挑戰賽</h1>
+        <p>調整參數，設計你的完美投籃器</p>
+        <div class="menu-buttons">
+            <button id="start-game-btn">開始遊戲</button>
+        </div>
+    </div>
+
+    <!-- NAME INPUT MODAL -->
+    <div id="name-modal" onclick="if(event.target.id === 'name-modal') closeNameModal();">
+        <div class="modal-content" onclick="event.stopPropagation();">
+            <h2 style="color: #e67e22; margin: 0 0 20px 0;">輸入班別學號</h2>
+            <p style="color: #666; margin-bottom: 10px;">請輸入班別學號：</p>
+            <p style="color: #888; font-size: 0.9rem; margin-bottom: 15px; line-height: 1.5;">例如：1A（01）<br>格式：班別（學號）</p>
+            <input type="text" id="player-name-input" placeholder="例如：1A（01）" maxlength="20" autofocus>
+            <div class="button-group">
+                <button class="secondary" id="cancel-name-btn" type="button">取消</button>
+                <button id="confirm-name-btn" type="button">確認</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SETUP SCREEN -->
+    <div id="setup-panel" class="ui-panel" style="display: none;">
+        <h1>🏀 投籃實驗室</h1>
+        <p>選擇零件，組裝你的完美投籃器</p>
+        
+        <!-- Budget Display -->
+        <div class="budget-display" id="budget-display">
+            <div class="budget-header">
+                <div class="budget-label" style="color: #666; font-weight: bold;">可用預算</div>
+                <div class="budget-amount" id="budget-amount">$100</div>
+            </div>
+            <div class="budget-progress-container">
+                <div id="budget-progress-bar" class="budget-progress-bar"></div>
+            </div>
+        </div>
+
+        <!-- Part Selection: Material -->
+        <div class="control-group">
+            <div class="label-row">
+                <label>彈板材質</label>
+                <div style="position:relative">
+                    <span class="info-btn" data-part="material">?</span>
+                    <div class="tooltip">材質決定彈性和穩定度。點擊 ? 查看科學原理</div>
+                </div>
+            </div>
+            <div id="material-options" class="part-options"></div>
+        </div>
+
+        <!-- Part Selection: Thickness -->
+        <div class="control-group">
+            <div class="label-row">
+                <label>板材厚度</label>
+                <div style="position:relative">
+                    <span class="info-btn" data-part="thickness">?</span>
+                    <div class="tooltip">越厚越硬，能儲存更多能量。點擊 ? 查看科學原理</div>
+                </div>
+            </div>
+            <div id="thickness-options" class="part-options"></div>
+        </div>
+
+        <!-- Part Selection: Length -->
+        <div class="control-group">
+            <div class="label-row">
+                <label>板材長度</label>
+                <div style="position:relative">
+                    <span class="info-btn" data-part="length">?</span>
+                    <div class="tooltip">越長越軟，擺動幅度越大。點擊 ? 查看科學原理</div>
+                </div>
+            </div>
+            <div id="length-options" class="part-options"></div>
+        </div>
+
+        <!-- Part Selection: Base -->
+        <div class="control-group">
+            <div class="label-row">
+                <label>底座類型</label>
+                <div style="position:relative">
+                    <span class="info-btn" data-part="base">?</span>
+                    <div class="tooltip">底座影響穩定性。點擊 ? 查看科學原理</div>
+                </div>
+            </div>
+            <div id="base-options" class="part-options"></div>
+        </div>
+
+        <!-- Part Selection: Support Height -->
+        <div class="control-group">
+            <div class="label-row">
+                <label>支撐高度</label>
+                <div style="position:relative">
+                    <span class="info-btn" data-part="support">?</span>
+                    <div class="tooltip">高度影響發射角度。點擊 ? 查看科學原理</div>
+                </div>
+            </div>
+            <div id="support-options" class="part-options"></div>
+        </div>
+
+        <div class="highscore-box">
+            <div class="hs-title">🏆 最佳紀錄 (Top 3)</div>
+            <ul id="highscoreListSetup" class="hs-list">
+                <li class="hs-item"><span>暫無紀錄</span><span>--</span></li>
+            </ul>
+        </div>
+
+        <button id="startBtn">開始挑戰 (60秒)</button>
+    </div>
+
+    <!-- IN-GAME HUD -->
+    <div id="game-hud">
+        <div class="hud-group">
+            <div class="hud-text" id="scoreDisplay">0 分</div>
+            <div class="hud-controls">
+                <button class="secondary" id="configBtn">⚙ 設定</button>
+            </div>
+        </div>
+        <div class="hud-group">
+            <div class="hud-text timer-text" id="timerDisplay">60s</div>
+        </div>
+    </div>
+
+    <!-- GAME OVER MODAL -->
+    <div id="modal-overlay">
+        <div class="ui-panel" style="text-align:center; width: 90%; max-width: 800px; padding: 30px;">
+            <h1 style="color:#e67e22; font-size: 2.5rem; margin-bottom: 10px;">比賽結束</h1>
+            <p style="font-size: 1.1rem; color: #666; margin-bottom: 30px;" id="end-screen-subtitle">恭喜完成比賽！</p>
+            
+            <div style="display: flex; flex-direction: row; gap: 30px; justify-content: center; align-items: flex-start; flex-wrap: wrap;">
+                <div class="leaderboard-card">
+                    <h3>🏆 本局成績</h3>
+                    <div id="player-result" class="player-result-card" style="display: none;"></div>
+                    <div style="text-align: left;">
+                        <div style="padding: 10px 0; border-bottom: 1px solid rgba(0,0,0,0.1);">
+                            <div style="font-weight: bold; color: #e67e22; margin-bottom: 5px;" id="current-player-name">玩家</div>
+                            <div class="player-result-score" id="current-player-score">0 分</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="leaderboard-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 style="margin: 0;">⭐ 最高分排行榜</h3>
+                        <button class="clear-leaderboard-btn secondary" id="clear-leaderboard-btn" type="button" onclick="clearLeaderboard()">清除記錄</button>
+                    </div>
+                    <div id="leaderboard-list"></div>
+                </div>
+            </div>
+
+            <div style="display:flex; flex-direction: column; gap:15px; margin-top:30px; align-items: center;">
+                <div style="display:flex; gap:15px; justify-content: center; width: 100%;">
+                    <button id="restartBtn" style="flex: 1; padding: 15px; font-size: 1.1rem; line-height: 1.4;">同一位同學<br><span style="font-size: 0.8rem; opacity: 0.9;">(再玩一局)</span></button>
+                    <button id="newPlayerBtn" style="flex: 1; padding: 15px; font-size: 1.1rem; line-height: 1.4;">另一位同學<br><span style="font-size: 0.8rem; opacity: 0.9;">(重新輸入班號學號)</span></button>
+                </div>
+                <button class="secondary" id="backToSetupBtn" style="width:auto; min-width: 150px;">返回主目錄</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Science Principle Modal -->
+    <div id="science-modal" onclick="if(event.target.id === 'science-modal') closeScienceModal();">
+        <div class="modal-content" onclick="event.stopPropagation();">
+            <button class="close-btn" onclick="closeScienceModal();" type="button">×</button>
+            <h2 id="science-modal-title"></h2>
+            <div id="science-modal-content" style="color: #333; line-height: 1.8; font-size: 1rem;"></div>
+        </div>
+    </div>
+
+    <!-- 3D Scene Container -->
+    <div id="canvas-container"></div>
+    
+    <!-- 2D Game Canvas (for particles, UI overlays) -->
+    <canvas id="gameCanvas"></canvas>
+
+<script>
+/**
+ * Parts System & Budget
+ */
+const PARTS = {
+    material: [
+        { id: 'plastic', name: '彈性塑膠', price: 5, value: 'plastic', desc: '標準性能' },
+        { id: 'wood', name: '硬木', price: 15, value: 'wood', desc: '穩定，能量中等' },
+        { id: 'carbon', name: '碳纖維', price: 35, value: 'carbon', desc: '極穩定，能量高' },
+        { id: 'metal', name: '彈簧鋼', price: 20, value: 'metal', desc: '高能量，易晃動' },
+        { id: 'rubber', name: '軟橡膠', price: 10, value: 'rubber', desc: '高阻尼，能量低' }
+    ],
+    thickness: [
+        { id: 'thin', name: '薄', price: 0, value: 10, desc: '基礎厚度' },
+        { id: 'medium', name: '中', price: 8, value: 16, desc: '中等厚度' },
+        { id: 'thick', name: '厚', price: 18, value: 22, desc: '較厚' },
+        { id: 'verythick', name: '極厚', price: 28, value: 30, desc: '最厚' }
+    ],
+    length: [
+        { id: 'short', name: '短', price: 0, value: 100, desc: '短，硬' },
+        { id: 'medium', name: '中', price: 8, value: 140, desc: '中等長度' },
+        { id: 'long', name: '長', price: 18, value: 180, desc: '長，軟' },
+        { id: 'verylong', name: '極長', price: 28, value: 220, desc: '最長' }
+    ],
+    base: [
+        { id: 'simple', name: '簡易底座', price: 0, value: 'simple', desc: '基礎穩定性' },
+        { id: 'stable', name: '穩定底座', price: 15, value: 'stable', desc: '更穩定' },
+        { id: 'premium', name: '高級底座', price: 30, value: 'premium', desc: '最穩定' }
+    ],
+    support: [
+        { id: 'low', name: '低支撐', price: 0, value: 'low', desc: '基礎角度' },
+        { id: 'medium', name: '中支撐', price: 12, value: 'medium', desc: '中等角度' },
+        { id: 'high', name: '高支撐', price: 25, value: 'high', desc: '高角度' }
+    ]
+};
+
+const MATERIALS = {
+    plastic: { name: 'Plastic', color: '#f1c40f', highlight: '#f39c12', damp: 0.85, modulus: 1.2, multiplier: 1.0 },
+    wood:    { name: 'Wood',    color: '#8e44ad', highlight: '#9b59b6', damp: 0.70, modulus: 2.5, multiplier: 0.8 }, 
+    carbon:  { name: 'Carbon',  color: '#2d3436', highlight: '#636e72', damp: 0.90, modulus: 3.5, multiplier: 0.6 }, 
+    metal:   { name: 'Metal',   color: '#95a5a6', highlight: '#bdc3c7', damp: 0.98, modulus: 1.5, multiplier: 1.3 }, 
+    rubber:  { name: 'Rubber',  color: '#e84393', highlight: '#fd79a8', damp: 0.60, modulus: 0.8, multiplier: 1.5 } 
+};
+
+// Budget System
+let budget = {
+    total: 100,
+    remaining: 100,
+    used: 0
+};
+
+// Selected Parts
+let selectedParts = {
+    material: PARTS.material[0], // Default: plastic
+    thickness: PARTS.thickness[1], // Default: medium
+    length: PARTS.length[1], // Default: medium
+    base: PARTS.base[0], // Default: simple
+    support: PARTS.support[0] // Default: low
+};
+
+// Science Principles (first time click)
+const shownPrinciples = new Set();
+const sciencePrinciples = {
+    material: {
+        title: '物料的秘密',
+        content: `
+            <p style="font-size: 1.1rem; line-height: 1.8;">🎯 <strong>簡單來說：</strong></p>
+            <p style="font-size: 1.1rem; line-height: 1.8;">不同的物料就像不同強度的彈弓！</p>
+            <p style="font-size: 1.1rem; line-height: 1.8;">• <strong>彈性</strong>：有的物料很有彈性（像塑膠），有的則很硬（像碳纖維）。</p>
+            <p style="font-size: 1.1rem; line-height: 1.8;">• <strong>力氣</strong>：越硬的物料，投球的力氣通常越大。</p>
+            <p style="font-size: 1.1rem; line-height: 1.8;">• <strong>選擇</strong>：硬材質投得遠，軟材質投得穩。選一個最適合你的吧！</p>
+            <p style="font-size: 1.1rem; line-height: 1.8; margin-top: 15px; color: #e67e22;">💡 秘訣：試試不同的物料，看看哪一種最容易投進！</p>
+        `
+    },
+    thickness: {
+        title: '厚度的力氣',
+        content: `
+            <p style="font-size: 1.1rem; line-height: 1.8;">🎯 <strong>簡單來說：</strong></p>
+            <p style="font-size: 1.1rem; line-height: 1.8;">木板越厚，它的「肌肉」就越強壯！</p>
+            <p style="font-size: 1.1rem; line-height: 1.8;">• <strong>強壯</strong>：厚厚的木板力氣很大，可以把球推得更遠。</p>
+            <p style="font-size: 1.1rem; line-height: 1.8;">• <strong>挑戰</strong>：木板太厚的話，你需要花更多力氣才能把它拉下來喔。</p>
+            <p style="font-size: 1.1rem; line-height: 1.8;">• <strong>平衡</strong>：選一個你拉得動、又能投得遠的厚度吧！</p>
+            <p style="font-size: 1.1rem; line-height: 1.8; margin-top: 15px; color: #e67e22;">💡 秘訣：厚度增加一點點，力氣就會增加很多倍喔！</p>
+        `
+    },
+    length: {
+        title: '長短的學問',
+        content: `
+            <p style="font-size: 1.1rem; line-height: 1.8;">🎯 <strong>簡單來說：</strong></p>
+            <p style="font-size: 1.1rem; line-height: 1.8;">長長的木板像長臂猿的手臂，擺動起來很有力！</p>
+            <p style="font-size: 1.1rem; line-height: 1.8;">• <strong>擺動</strong>：長木板可以讓球劃出一個漂亮的大圓弧。</p>
+            <p style="font-size: 1.1rem; line-height: 1.8;">• <strong>變軟</strong>：但是如果木板太長了，它會變得很軟，球反而飛不快。</p>
+            <p style="font-size: 1.1rem; line-height: 1.8;">• <strong>短木板</strong>：雖然很硬很有力，但擺動的範圍比較小。</p>
+            <p style="font-size: 1.1rem; line-height: 1.8; margin-top: 15px; color: #e67e22;">💡 秘訣：長度要剛剛好，球才能飛得又高又遠！</p>
+        `
+    },
+    base: {
+        title: '穩定的腳步',
+        content: `
+            <p style="font-size: 1.1rem; line-height: 1.8;">🎯 <strong>簡單來說：</strong></p>
+            <p style="font-size: 1.1rem; line-height: 1.8;">投籃時腳要站穩，機器也一樣喔！</p>
+            <p style="font-size: 1.1rem; line-height: 1.8;">• <strong>不搖晃</strong>：穩定的底座能讓投籃器在發射時不會亂動。</p>
+            <p style="font-size: 1.1rem; line-height: 1.8;">• <strong>準度</strong>：機器站得越穩，球投得就越準，不會偏掉。</p>
+            <p style="font-size: 1.1rem; line-height: 1.8;">• <strong>重量</strong>：越大、越重的底座，穩定性就越好。</p>
+            <p style="font-size: 1.1rem; line-height: 1.8; margin-top: 15px; color: #e67e22;">💡 秘訣：想要百發百中？選一個最穩的底座吧！</p>
+        `
+    },
+    support: {
+        title: '發射的角度',
+        content: `
+            <p style="font-size: 1.1rem; line-height: 1.8;">🎯 <strong>簡單來說：</strong></p>
+            <p style="font-size: 1.1rem; line-height: 1.8;">支撐點的高低，決定了球往哪個方向飛！</p>
+            <p style="font-size: 1.1rem; line-height: 1.8;">• <strong>太高</strong>：角度太高，球會像火箭一樣直直向上飛，投不遠。</p>
+            <p style="font-size: 1.1rem; line-height: 1.8;">• <strong>太低</strong>：角度太低，球會直接撞到地板。</p>
+            <p style="font-size: 1.1rem; line-height: 1.8;">• <strong>完美角度</strong>：大約 45 度是最好的角度，能讓球飛到最遠的地方！</p>
+            <p style="font-size: 1.1rem; line-height: 1.8; margin-top: 15px; color: #e67e22;">💡 秘訣：對準籃框的高度，調整你的發射角度吧！</p>
+        `
+    }
+};
+
+let CONFIG = {
+    gravity: 0.5,
+    friction: 0.99,
+    groundFriction: 0.8,
+    bounceFactor: 0.65,
+    boardLength: 140,
+    boardThickness: 16,
+    restAngle: -Math.PI * 0.58, 
+    stiffness: 0.15, 
+    ballRadius: 15,
+    material: MATERIALS.plastic,
+    gameTime: 60,
+    baseScore: 10,
+    movingTargetScore: 200 
+};
+
+/**
+ * Game State
+ */
+const state = {
+    mode: 'MENU', // MENU, SETUP, PLAYING, GAMEOVER
+    playerName: '',
+    score: 0,
+    timeLeft: 60,
+    lastTime: 0,
+    gameTimeElapsed: 0, 
+    
+    isDragging: false,
+    isMovingBase: false, 
+    isBallFlying: false,
+    hasScoredThisFlight: false, // Flag to prevent multiple scoring in one flight
+    dragX: 0,
+    dragY: 0,
+    
+    boardTipX: 0, 
+    boardTipY: 0,
+    boardVelocityX: 0,
+    boardVelocityY: 0,
+    boardBaseX: 120, 
+    boardBaseY: 0,
+    
+    particles: [],
+    audience: [], 
+    cheerTimer: 0 
+};
+
+// Canvas Setup
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// Optimization: Offscreen Canvas for static background and idle audience
+let bgCanvas, bgCtx;
+let audienceCanvas, audienceCtx;
+
+// Entities
+let ball = { x: 0, y: 0, vx: 0, vy: 0, rotation: 0 };
+let target = { x: 0, y: 0, rimY: 0, baseRimY: 0 }; 
+
+const uiElements = {
+    setupPanel: document.getElementById('setup-panel'),
+    scoreDisplay: document.getElementById('scoreDisplay'),
+    timerDisplay: document.getElementById('timerDisplay'),
+    modalOverlay: document.getElementById('modal-overlay'),
+    finalScoreText: document.getElementById('finalScoreText'),
+    materialSelect: document.getElementById('materialSelect'),
+    thicknessRange: document.getElementById('thicknessRange'),
+    thicknessVal: document.getElementById('thicknessVal'),
+    lengthRange: document.getElementById('lengthRange'),
+    lengthVal: document.getElementById('lengthVal'),
+    startBtn: document.getElementById('startBtn'),
+    restartBtn: document.getElementById('restartBtn'),
+    newPlayerBtn: document.getElementById('newPlayerBtn'),
+    configBtn: document.getElementById('configBtn'),
+    backToSetupBtn: document.getElementById('backToSetupBtn'),
+    hsListSetup: document.getElementById('highscoreListSetup'),
+    hsListOver: document.getElementById('highscoreListOver'),
+    body: document.body
+};
+
+/**
+ * Part Selection & Budget Management
+ */
+function renderPartOptions() {
+    // Render material options
+    renderPartCategory('material', PARTS.material);
+    renderPartCategory('thickness', PARTS.thickness);
+    renderPartCategory('length', PARTS.length);
+    renderPartCategory('base', PARTS.base);
+    renderPartCategory('support', PARTS.support);
+    
+    updateBudget();
+}
+
+function renderPartCategory(category, parts) {
+    const container = document.getElementById(`${category}-options`);
+    if (!container) return;
+    
+    container.innerHTML = '';
+    parts.forEach(part => {
+        const option = document.createElement('div');
+        option.className = 'part-option';
+        option.dataset.category = category;
+        option.dataset.partId = part.id;
+        
+        const isSelected = selectedParts[category] && selectedParts[category].id === part.id;
+        const canAfford = budget.remaining >= (part.price - (selectedParts[category] ? selectedParts[category].price : 0));
+        
+        if (isSelected) option.classList.add('selected');
+        if (!isSelected && !canAfford) option.classList.add('disabled');
+        
+        const priceClass = part.price >= 20 ? 'expensive' : '';
+        
+        option.innerHTML = `
+            <div style="display: flex; align-items: center;">
+                <div>
+                    <div style="font-weight: bold; color: #333;">${part.name}</div>
+                    <div style="font-size: 0.8rem; color: #888;">${part.desc}</div>
+                </div>
+            </div>
+            <div class="part-price ${priceClass}">$${part.price}</div>
+        `;
+        
+        if (isSelected || canAfford) {
+            option.addEventListener('click', () => selectPart(category, part));
+        }
+        
+        container.appendChild(option);
+    });
+}
+
+function selectPart(category, part) {
+    // Show science principle on first click (like 衝鋒車)
+    if (!shownPrinciples.has(category)) {
+        showSciencePrinciple(category);
+        shownPrinciples.add(category);
+        // Don't select yet, wait for user to close modal
+        return;
+    }
+    
+    // Calculate budget change
+    const oldPart = selectedParts[category];
+    const costChange = part.price - (oldPart ? oldPart.price : 0);
+    
+    if (budget.remaining < costChange) {
+        alert('預算不足！');
+        return;
+    }
+    
+    // Update selection
+    selectedParts[category] = part;
+    
+    // Update budget
+    budget.used += costChange;
+    budget.remaining -= costChange;
+    
+    // Update UI
+    renderPartOptions();
+    updateConfigFromParts();
+    checkBudgetForStartButton();
+}
+
+function updateBudget() {
+    const budgetDisplay = document.getElementById('budget-amount');
+    const budgetContainer = document.getElementById('budget-display');
+    const progressBar = document.getElementById('budget-progress-bar');
+    
+    const percentage = Math.max(0, (budget.remaining / budget.total) * 100);
+    
+    if (budgetDisplay) {
+        budgetDisplay.textContent = `$${budget.remaining}`;
+        budgetDisplay.style.color = budget.remaining < 0 ? 'var(--danger)' : 
+                                   budget.remaining < 20 ? '#f39c12' : 'var(--success)';
+    }
+    
+    if (progressBar) {
+        progressBar.style.width = `${Math.min(100, Math.abs(percentage))}%`;
+    }
+    
+    if (budgetContainer) {
+        if (budget.remaining < 0) {
+            budgetContainer.classList.add('budget-warning');
+        } else {
+            budgetContainer.classList.remove('budget-warning');
+        }
+    }
+    
+    checkBudgetForStartButton();
+}
+
+function checkBudgetForStartButton() {
+    const startBtn = document.getElementById('startBtn');
+    if (!startBtn) return;
+    
+    if (budget.remaining < 0) {
+        startBtn.disabled = true;
+        startBtn.style.opacity = '0.5';
+        startBtn.style.cursor = 'not-allowed';
+        startBtn.title = '預算不足，無法開始遊戲！';
+    } else {
+        startBtn.disabled = false;
+        startBtn.style.opacity = '1';
+        startBtn.style.cursor = 'pointer';
+        startBtn.title = '';
+    }
+}
+
+function updateConfigFromParts() {
+    // Update material
+    CONFIG.material = MATERIALS[selectedParts.material.value];
+    
+    // Update thickness
+    CONFIG.boardThickness = selectedParts.thickness.value;
+    
+    // Update length
+    CONFIG.boardLength = selectedParts.length.value;
+    
+    // Recalculate physics
+    recalcPhysics();
+    
+    // Update 3D model if exists
+    if (window.updateTrebuchetModel) {
+        updateTrebuchetModel();
+    }
+}
+
+function resetBudget() {
+    budget.remaining = budget.total;
+    budget.used = 0;
+    
+    // Reset to default parts
+    selectedParts = {
+        material: PARTS.material[0],
+        thickness: PARTS.thickness[1],
+        length: PARTS.length[1],
+        base: PARTS.base[0],
+        support: PARTS.support[0]
+    };
+    
+    renderPartOptions();
+    updateConfigFromParts();
+}
+
+// Science Principle Modal
+function showSciencePrinciple(partType) {
+    const principle = sciencePrinciples[partType];
+    if (!principle) return;
+    
+    const modal = document.getElementById('science-modal');
+    const title = document.getElementById('science-modal-title');
+    const content = document.getElementById('science-modal-content');
+    
+    if (modal && title && content) {
+        title.textContent = principle.title;
+        content.innerHTML = principle.content;
+        modal.style.display = 'flex';
+        
+        // Mark as shown
+        shownPrinciples.add(partType);
+    }
+}
+
+function closeScienceModal() {
+    const modal = document.getElementById('science-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+window.closeScienceModal = closeScienceModal;
+
+// Bind science principle buttons (manual click on ?)
+document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('info-btn') && e.target.dataset.part) {
+        const partType = e.target.dataset.part;
+        showSciencePrinciple(partType);
+        shownPrinciples.add(partType);
+    }
+    
+    if (e.target.closest('#science-modal .close-btn') || 
+        (e.target.id === 'science-modal' && e.target.style.display === 'flex')) {
+        closeScienceModal();
+    }
+});
+
+/**
+ * Initialization
+ */
+function init() {
+    // Initialize part selection UI
+    renderPartOptions();
+    
+    // Setup Offscreen Canvases
+    // Setup Offscreen Canvases
+    bgCanvas = document.createElement('canvas');
+    bgCtx = bgCanvas.getContext('2d');
+    
+    audienceCanvas = document.createElement('canvas');
+    audienceCtx = audienceCanvas.getContext('2d');
+
+    resizeCanvas();
+    updateHighScoresUI();
+    window.addEventListener('resize', resizeCanvas);
+    
+    canvas.addEventListener('mousedown', onPointerDown);
+    canvas.addEventListener('mousemove', onPointerMove);
+    window.addEventListener('mouseup', onPointerUp);
+    
+    canvas.addEventListener('touchstart', onPointerDown, {passive: false});
+    canvas.addEventListener('touchmove', onPointerMove, {passive: false});
+    window.addEventListener('touchend', onPointerUp);
+
+    // Main menu button
+    const startGameBtn = document.getElementById('start-game-btn');
+    if (startGameBtn) {
+        startGameBtn.addEventListener('click', showNameModal);
+    }
+    
+    // Name modal buttons
+    const confirmNameBtn = document.getElementById('confirm-name-btn');
+    const cancelNameBtn = document.getElementById('cancel-name-btn');
+    if (confirmNameBtn) {
+        confirmNameBtn.addEventListener('click', confirmName);
+    }
+    if (cancelNameBtn) {
+        cancelNameBtn.addEventListener('click', closeNameModal);
+    }
+    
+    // Name input Enter key
+    const playerNameInput = document.getElementById('player-name-input');
+    if (playerNameInput) {
+        playerNameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                confirmName();
+            }
+        });
+    }
+    
+    uiElements.startBtn.addEventListener('click', startGame);
+    uiElements.restartBtn.addEventListener('click', resetRound);
+    uiElements.newPlayerBtn.addEventListener('click', startNewPlayer);
+    uiElements.configBtn.addEventListener('click', () => {
+        state.mode = 'SETUP';
+        uiElements.body.classList.remove('playing');
+        const setupPanel = document.getElementById('setup-panel');
+        if (setupPanel) setupPanel.style.display = 'flex';
+    });
+    uiElements.backToSetupBtn.addEventListener('click', showMainMenu);
+    
+    // Part selection is handled by renderPartOptions()
+
+    recalcPhysics();
+    resetBall();
+    
+    // Init Visuals
+    initAudience();
+
+    // Initialize 3D Scene
+    init3DScene();
+    
+    // Show main menu on load
+    showMainMenu();
+    updateHighScoresUI();
+
+    loop(0);
+}
+
+/**
+ * 3D Scene & Trebuchet Model
+ */
+let scene3D, camera3D, renderer3D;
+let trebuchetGroup, ball3D;
+let hoops = []; // Multiple hoops
+
+function init3DScene() {
+    const container = document.getElementById('canvas-container');
+    if (!container) return;
+    
+    // Scene
+    scene3D = new THREE.Scene();
+    scene3D.background = new THREE.Color(0x1a1a1a);
+    scene3D.fog = new THREE.FogExp2(0x1a1a1a, 0.001);
+    
+    // Camera
+    camera3D = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+    camera3D.position.set(0, 50, 150);
+    camera3D.lookAt(0, 0, 0);
+    
+    // Renderer
+    renderer3D = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer3D.setSize(window.innerWidth, window.innerHeight);
+    renderer3D.shadowMap.enabled = true;
+    renderer3D.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer3D.domElement);
+    
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene3D.add(ambientLight);
+    
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(-50, 100, 50);
+    directionalLight.castShadow = true;
+    directionalLight.shadow.mapSize.width = 2048;
+    directionalLight.shadow.mapSize.height = 2048;
+    scene3D.add(directionalLight);
+    
+    // Create trebuchet
+    createTrebuchet();
+    
+    // Create multiple hoops
+    createHoops();
+    
+    // Ground
+    const groundGeometry = new THREE.PlaneGeometry(2000, 2000);
+    const groundMaterial = new THREE.MeshStandardMaterial({ color: 0xc07e46 });
+    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = 0;
+    ground.receiveShadow = true;
+    scene3D.add(ground);
+    
+    // Handle resize
+    window.addEventListener('resize', () => {
+        camera3D.aspect = window.innerWidth / window.innerHeight;
+        camera3D.updateProjectionMatrix();
+        renderer3D.setSize(window.innerWidth, window.innerHeight);
+    });
+    
+    // Start 3D render loop
+    animate3D();
+}
+
+function createTrebuchet() {
+    trebuchetGroup = new THREE.Group();
+    
+    // Create a simple wood-like procedural texture effect
+    const woodColor = 0x8b4513;
+    const woodMaterial = new THREE.MeshStandardMaterial({ 
+        color: woodColor,
+        roughness: 0.8,
+        metalness: 0.1
+    });
+
+    // Create metal-like material with high reflection
+    const metalMaterial = new THREE.MeshStandardMaterial({
+        color: 0xaaaaaa,
+        metalness: 0.9,
+        roughness: 0.1
+    });
+
+    // Base (底座) - 更美觀的設計
+    const baseGeometry = new THREE.BoxGeometry(10, 2.5, 7);
+    const base = new THREE.Mesh(baseGeometry, woodMaterial);
+    base.position.y = 1.25;
+    base.castShadow = true;
+    trebuchetGroup.add(base);
+    
+    // Base decoration (底座裝飾)
+    const baseTopGeometry = new THREE.BoxGeometry(9, 0.3, 6);
+    const baseTopMaterial = new THREE.MeshStandardMaterial({ color: 0x654321, roughness: 0.9 });
+    const baseTop = new THREE.Mesh(baseTopGeometry, baseTopMaterial);
+    baseTop.position.set(0, 2.65, 0);
+    baseTop.castShadow = true;
+    trebuchetGroup.add(baseTop);
+    
+    // Support posts (支撐柱) - 更粗更美觀
+    const postGeometry = new THREE.CylinderGeometry(0.4, 0.5, 9, 8);
+    
+    const leftPost = new THREE.Mesh(postGeometry, woodMaterial);
+    leftPost.position.set(-2.5, 5.5, 0);
+    leftPost.castShadow = true;
+    trebuchetGroup.add(leftPost);
+    
+    const rightPost = new THREE.Mesh(postGeometry, woodMaterial);
+    rightPost.position.set(2.5, 5.5, 0);
+    rightPost.castShadow = true;
+    trebuchetGroup.add(rightPost);
+    
+    // Cross beam (橫梁) - 連接兩根柱子
+    const beamGeometry = new THREE.BoxGeometry(5.5, 0.3, 0.3);
+    const beam = new THREE.Mesh(beamGeometry, woodMaterial);
+    beam.position.set(0, 9.5, 0);
+    beam.castShadow = true;
+    trebuchetGroup.add(beam);
+    
+    // Pivot point (軸心) - 金屬反光效果
+    const pivotGeometry = new THREE.CylinderGeometry(0.2, 0.2, 0.8, 16);
+    const pivot = new THREE.Mesh(pivotGeometry, metalMaterial);
+    pivot.rotation.x = Math.PI / 2;
+    pivot.position.set(0, 5.5, 0);
+    pivot.castShadow = true;
+    trebuchetGroup.add(pivot);
+    
+    // Arm (發射臂) - 更美觀的設計，帶紋理感
+    const armLength = selectedParts.length.value / 10;
+    const armGeometry = new THREE.BoxGeometry(0.4, armLength, 0.4);
+    const armMaterial = new THREE.MeshStandardMaterial({ 
+        color: CONFIG.material.color.replace('#', '0x'),
+        roughness: 0.4,
+        metalness: 0.2
+    });
+    const arm = new THREE.Mesh(armGeometry, armMaterial);
+    arm.position.set(0, 5.5, 0);
+    arm.rotation.z = CONFIG.restAngle;
+    arm.castShadow = true;
+    arm.name = 'arm';
+    trebuchetGroup.add(arm);
+    
+    // Arm tip decoration (發射臂尖端裝飾) - 金屬感
+    const tipGeometry = new THREE.ConeGeometry(0.3, 0.5, 8);
+    const tip = new THREE.Mesh(tipGeometry, metalMaterial);
+    tip.rotation.z = Math.PI;
+    tip.position.set(0, armLength / 2 + 0.25, 0);
+    arm.add(tip);
+    
+    // Ball holder (球托) - 在發射臂末端
+    const holderGeometry = new THREE.TorusGeometry(0.35, 0.05, 8, 16);
+    const holderMaterial = new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.5 });
+    const holder = new THREE.Mesh(holderGeometry, holderMaterial);
+    holder.rotation.x = Math.PI / 2;
+    holder.position.set(0, armLength / 2, 0);
+    arm.add(holder);
+    
+    // Ball (球) - 更美觀
+    const ballGeometry = new THREE.SphereGeometry(0.35, 16, 16);
+    const ballMaterial = new THREE.MeshStandardMaterial({ 
+        color: 0xe67e22,
+        roughness: 0.3,
+        metalness: 0.1
+    });
+    ball3D = new THREE.Mesh(ballGeometry, ballMaterial);
+    ball3D.position.set(0, 5.5 + Math.sin(CONFIG.restAngle) * armLength, 0);
+    ball3D.castShadow = true;
+    ball3D.name = 'ball';
+    trebuchetGroup.add(ball3D);
+    
+    // Ball stripes (球的條紋)
+    const stripeGeometry = new THREE.TorusGeometry(0.35, 0.02, 8, 16);
+    const stripeMaterial = new THREE.MeshStandardMaterial({ color: 0xd35400 });
+    for (let i = 0; i < 3; i++) {
+        const stripe = new THREE.Mesh(stripeGeometry, stripeMaterial);
+        stripe.rotation.x = Math.PI / 2;
+        stripe.rotation.z = (i * Math.PI * 2) / 3;
+        ball3D.add(stripe);
+    }
+    
+    trebuchetGroup.position.set(0, 0, -50);
+    trebuchetGroup.userData.recoil = 0; // Initialize recoil
+    scene3D.add(trebuchetGroup);
+}
+
+function updateTrebuchetModel() {
+    if (!trebuchetGroup) return;
+    
+    const arm = trebuchetGroup.getObjectByName('arm');
+    if (arm) {
+        // Update arm length
+        const armLength = selectedParts.length.value / 10;
+        arm.scale.y = armLength / (140 / 10); // Relative to default
+        
+        // Update material color
+        if (arm.material) {
+            arm.material.color.setHex(CONFIG.material.color.replace('#', '0x'));
+        }
+    }
+}
+
+function createHoops() {
+    // Clear existing hoops
+    hoops.forEach(hoop => scene3D.remove(hoop));
+    hoops = [];
+    
+    // Position hoops further right to match 2D logic
+    const startX = 25; 
+    const spacing = 20;
+    
+    // Hoop 1: Close, Easy (20 points)
+    hoops.push(createHoop(startX, 10, 20, 0x4CAF50, '近距離', 1.2));
+    
+    // Hoop 2: Medium, Medium (50 points)
+    hoops.push(createHoop(startX + spacing, 18, 50, 0xFFC107, '中距離', 1.2));
+    
+    // Hoop 3: Far, Hard (100 points)
+    hoops.push(createHoop(startX + spacing * 2, 26, 100, 0xF44336, '遠距離', 1.2));
+}
+
+function createHoop(x, y, points, color, label, scale = 1.0) {
+    const hoopGroup = new THREE.Group();
+    
+    // Backboard
+    const backboardGeometry = new THREE.BoxGeometry(2 * scale, 3 * scale, 0.2);
+    const backboardMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
+    const backboard = new THREE.Mesh(backboardGeometry, backboardMaterial);
+    backboard.position.set(0, 0, 0);
+    backboard.castShadow = true;
+    hoopGroup.add(backboard);
+    
+    // Rim
+    const rimGeometry = new THREE.TorusGeometry(0.8 * scale, 0.05, 8, 32);
+    const rimMaterial = new THREE.MeshStandardMaterial({ color: color });
+    const rim = new THREE.Mesh(rimGeometry, rimMaterial);
+    rim.rotation.x = Math.PI / 2;
+    rim.position.set(0, -0.5, 0);
+    rim.castShadow = true;
+    hoopGroup.add(rim);
+    
+    // Net (simplified)
+    const netGeometry = new THREE.ConeGeometry(0.8 * scale, 1 * scale, 8);
+    const netMaterial = new THREE.MeshStandardMaterial({ 
+        color: 0xffffff, 
+        wireframe: true,
+        transparent: true,
+        opacity: 0.5
+    });
+    const net = new THREE.Mesh(netGeometry, netMaterial);
+    net.position.set(0, -1, 0);
+    hoopGroup.add(net);
+    
+    // Pole
+    const poleGeometry = new THREE.CylinderGeometry(0.1, 0.1, y * 2, 8);
+    const poleMaterial = new THREE.MeshStandardMaterial({ color: 0x555555 });
+    const pole = new THREE.Mesh(poleGeometry, poleMaterial);
+    pole.position.set(0, -y, 0);
+    pole.castShadow = true;
+    hoopGroup.add(pole);
+    
+    // Position
+    hoopGroup.position.set(x, y, 0);
+    hoopGroup.userData.points = points;
+    hoopGroup.userData.label = label;
+    hoopGroup.userData.color = color;
+    
+    scene3D.add(hoopGroup);
+    return hoopGroup;
+}
+
+function animate3D() {
+    requestAnimationFrame(animate3D);
+    
+    // Update trebuchet recoil
+    if (trebuchetGroup && trebuchetGroup.userData.recoil > 0) {
+        const recoil = trebuchetGroup.userData.recoil;
+        trebuchetGroup.position.z = -50 + Math.sin(recoil * 10) * recoil * 2;
+        trebuchetGroup.userData.recoil *= 0.92;
+        if (trebuchetGroup.userData.recoil < 0.01) {
+            trebuchetGroup.userData.recoil = 0;
+            trebuchetGroup.position.z = -50;
+        }
+    }
+
+    // Update moving hoop
+    hoops.forEach(hoop => {
+        if (hoop.userData.moving && state.mode === 'PLAYING') {
+            const time = state.gameTimeElapsed || 0;
+            hoop.position.x = hoop.userData.baseX + Math.sin(time * 1.5) * 10;
+        }
+    });
+    
+    // Update trebuchet arm rotation based on game state
+    if (trebuchetGroup && state.mode === 'PLAYING') {
+        const arm = trebuchetGroup.getObjectByName('arm');
+        if (arm) {
+            const restAngle = CONFIG.restAngle;
+            const currentAngle = Math.atan2(
+                state.boardTipY - state.boardBaseY,
+                state.boardTipX - state.boardBaseX
+            );
+            arm.rotation.z = currentAngle;
+            
+            // Update ball position (pivot is at y=5.5)
+            const armLength = selectedParts.length.value / 10;
+            ball3D.position.x = Math.cos(currentAngle) * armLength;
+            ball3D.position.y = 5.5 + Math.sin(currentAngle) * armLength;
+        }
+    }
+    
+    // Update ball 3D position from 2D game
+    if (ball3D && state.isBallFlying) {
+        ball3D.position.x = (ball.x - state.boardBaseX) / 10;
+        ball3D.position.y = (state.boardBaseY - ball.y) / 10 + 5.5;
+        ball3D.position.z = 0;
+        ball3D.rotation.x += ball.vx * 0.01;
+        ball3D.rotation.z += ball.vy * 0.01;
+    }
+    
+    renderer3D.render(scene3D, camera3D);
+}
+
+window.updateTrebuchetModel = updateTrebuchetModel;
+
+function initAudience() {
+    state.audience = [];
+    const rows = 12; 
+    const cols = 20; // Reduced density for performance
+    const startY = 50;
+    
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            if(Math.random() > 0.7) continue;
+            
+            const spacingX = (window.innerWidth / cols) * 1.2;
+            
+            state.audience.push({
+                x: (c * spacingX) + (Math.random() * 20),
+                y: startY + (r * 30) + (Math.random() * 5),
+                baseY: startY + (r * 30) + (Math.random() * 5),
+                color: `hsl(${Math.random() * 360}, 40%, ${20 + Math.random() * 20}%)`,
+                offset: Math.random() * Math.PI * 2
+            });
+        }
+    }
+}
+
+function recalcPhysics() {
+    const tFactor = CONFIG.boardThickness / 10;
+    const lFactor = CONFIG.boardLength / 100;
+    
+    let k = CONFIG.material.modulus * (tFactor * tFactor) / (lFactor * lFactor * lFactor);
+    k = k * 0.05; 
+    
+    if (k < 0.05) k = 0.05;
+    if (k > 0.45) k = 0.45;
+    
+    CONFIG.stiffness = k;
+    if (state.mode === 'SETUP') resetBall();
+}
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    
+    // Update caches
+    bgCanvas.width = canvas.width;
+    bgCanvas.height = canvas.height;
+    audienceCanvas.width = canvas.width;
+    audienceCanvas.height = canvas.height;
+    
+    state.boardBaseY = canvas.height - 100; 
+    setFixedTarget();
+    if (!state.isBallFlying) resetBall();
+    
+    initAudience();
+    renderStaticBackground();
+    renderStaticAudience(); // Pre-render idle audience
+}
+
+function renderStaticBackground() {
+    const floorY = state.boardBaseY;
+    const w = bgCanvas.width;
+    const h = bgCanvas.height;
+    
+    // 1. 背景漸變 (深色體育館氛圍)
+    const bgGradient = bgCtx.createRadialGradient(w/2, floorY - 200, 100, w/2, floorY - 200, 800);
+    bgGradient.addColorStop(0, '#2c3e50'); // 中心較亮
+    bgGradient.addColorStop(1, '#1a1a1a'); // 邊緣深色
+    bgCtx.fillStyle = bgGradient;
+    bgCtx.fillRect(0, 0, w, floorY);
+
+    // 2. 木質地板 (分層設計)
+    // 地板基色 (籃球場常用色)
+    bgCtx.fillStyle = '#e67e22'; 
+    bgCtx.fillRect(0, floorY, w, h - floorY);
+    
+    // 繪製木紋條紋
+    bgCtx.strokeStyle = 'rgba(0,0,0,0.1)';
+    bgCtx.lineWidth = 1;
+    for (let x = 0; x < w; x += 40) {
+        bgCtx.beginPath();
+        bgCtx.moveTo(x, floorY);
+        bgCtx.lineTo(x, h);
+        bgCtx.stroke();
+    }
+
+    // 地板反光 (讓木地板看起來有拋光感)
+    const floorReflect = bgCtx.createLinearGradient(0, floorY, 0, h);
+    floorReflect.addColorStop(0, 'rgba(255,255,255,0.2)');
+    floorReflect.addColorStop(0.5, 'rgba(255,255,255,0)');
+    bgCtx.fillStyle = floorReflect;
+    bgCtx.fillRect(0, floorY, w, h - floorY);
+
+    // 3. 球場標線
+    bgCtx.strokeStyle = 'rgba(255,255,255,0.6)';
+    bgCtx.lineWidth = 4;
+    
+    // 主邊線
+    bgCtx.beginPath();
+    bgCtx.moveTo(0, floorY);
+    bgCtx.lineTo(w, floorY);
+    bgCtx.stroke();
+}
+
+// 移除觀眾相關函數，改為空操作以節省效能
+function renderStaticAudience() {
+    audienceCtx.clearRect(0, 0, audienceCanvas.width, audienceCanvas.height);
+}
+
+function initAudience() {
+    state.audience = [];
+}
+
+function drawActiveAudience() {
+    // 不再繪製點點
+}
+
+function setFixedTarget() {
+    // Update hoops2D positions
+    hoops2D = getHoops2D();
+    
+    // Keep old target for compatibility (not used in new system)
+    target.x = canvas.width - 150; 
+    if (target.x < state.boardBaseX + 200) target.x = state.boardBaseX + 200;
+    target.baseRimY = state.boardBaseY - 220; 
+    target.rimY = target.baseRimY;
+}
+
+function showMainMenu() {
+    state.mode = 'MENU';
+    const mainMenu = document.getElementById('main-menu');
+    const setupPanel = document.getElementById('setup-panel');
+    const modalOverlay = document.getElementById('modal-overlay');
+    
+    if (mainMenu) mainMenu.style.display = 'flex';
+    if (setupPanel) setupPanel.style.display = 'none';
+    if (modalOverlay) modalOverlay.style.display = 'none';
+    uiElements.body.classList.remove('playing');
+    resetBall();
+}
+
+function showNameModal() {
+    const nameModal = document.getElementById('name-modal');
+    const input = document.getElementById('player-name-input');
+    if (nameModal) {
+        nameModal.style.display = 'flex';
+        if (input) {
+            input.value = state.playerName || '';
+            setTimeout(() => input.focus(), 100);
+        }
+    }
+}
+
+function closeNameModal() {
+    const nameModal = document.getElementById('name-modal');
+    if (nameModal) nameModal.style.display = 'none';
+}
+
+function confirmName() {
+    const input = document.getElementById('player-name-input');
+    const name = input ? input.value.trim() : '';
+    if (!name) {
+        alert('請輸入班別學號！');
+        return;
+    }
+    state.playerName = name;
+    closeNameModal();
+    openSetup();
+}
+
+function openSetup() {
+    state.mode = 'SETUP';
+    updateHighScoresUI();
+    const mainMenu = document.getElementById('main-menu');
+    const setupPanel = document.getElementById('setup-panel');
+    
+    if (mainMenu) mainMenu.style.display = 'none';
+    if (setupPanel) setupPanel.style.display = 'flex';
+    uiElements.body.classList.remove('playing');
+    uiElements.modalOverlay.style.display = 'none';
+    
+    // Reset budget if coming from main menu
+    if (mainMenu && mainMenu.style.display === 'flex') {
+        resetBudget();
+    }
+    
+    resetBall();
+}
+
+function startGame() {
+    if (!state.playerName) {
+        alert('請先輸入班別學號！');
+        return;
+    }
+    
+    if (budget.remaining < 0) {
+        alert('預算不足，無法開始遊戲！請調整零件選擇。');
+        return;
+    }
+    
+    state.mode = 'PLAYING';
+    state.score = 0;
+    state.timeLeft = CONFIG.gameTime;
+    state.gameTimeElapsed = 0;
+    updateHUD();
+    
+    uiElements.body.classList.add('playing');
+    const setupPanel = document.getElementById('setup-panel');
+    if (setupPanel) setupPanel.style.display = 'none';
+    
+    setFixedTarget(); 
+    resetBall();
+}
+
+function resetRound() {
+    uiElements.modalOverlay.style.display = 'none';
+    startGame();
+}
+
+function startNewPlayer() {
+    uiElements.modalOverlay.style.display = 'none';
+    state.playerName = ''; // 清空名字以讓新玩家輸入
+    showNameModal();
+}
+
+function resetBall() {
+    state.isBallFlying = false;
+    state.hasScoredThisFlight = false; // Reset scoring flag
+    ball.vx = 0;
+    ball.vy = 0;
+    ball.rotation = 0;
+    
+    const restX = state.boardBaseX + Math.cos(CONFIG.restAngle) * CONFIG.boardLength;
+    const restY = state.boardBaseY + Math.sin(CONFIG.restAngle) * CONFIG.boardLength;
+    
+    state.boardTipX = restX;
+    state.boardTipY = restY;
+    state.boardVelocityX = 0;
+    state.boardVelocityY = 0;
+
+    ball.x = state.boardTipX;
+    ball.y = state.boardTipY;
+}
+
+// Leaderboard Storage
+const LeaderboardStorage = {
+    STORAGE_KEY: 'basketball_flipper_leaderboard',
+    
+    save(record) {
+        const records = this.getAll();
+        records.push(record);
+        // Sort by score (descending - highest first)
+        records.sort((a, b) => b.score - a.score);
+        // Keep only top 10
+        const top10 = records.slice(0, 10);
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(top10));
+    },
+    
+    getAll() {
+        try {
+            const data = localStorage.getItem(this.STORAGE_KEY);
+            return data ? JSON.parse(data) : [];
+        } catch (e) {
+            return [];
+        }
+    },
+    
+    clear() {
+        localStorage.removeItem(this.STORAGE_KEY);
+    }
+};
+
+function getHighScores() {
+    return LeaderboardStorage.getAll();
+}
+
+function saveScore(score) {
+    if (score === 0 || !state.playerName) return;
+    const record = {
+        name: state.playerName,
+        score: score,
+        timestamp: Date.now()
+    };
+    LeaderboardStorage.save(record);
+}
+
+function updateHighScoresUI() {
+    const scores = getHighScores();
+    const createList = (list) => {
+        let html = '';
+        if (scores.length === 0) {
+            html = '<li class="hs-item"><span>暫無紀錄</span><span>--</span></li>';
+        } else {
+            scores.forEach((s, i) => {
+                html += `<li class="hs-item"><span>#${i+1} ${s.name || '未命名'}</span><span>${s.score} 分</span></li>`;
+            });
+        }
+        return html;
+    };
+    if (uiElements.hsListSetup) uiElements.hsListSetup.innerHTML = createList(scores);
+    if (uiElements.hsListOver) uiElements.hsListOver.innerHTML = createList(scores);
+    
+    // Update leaderboard list in end screen
+    refreshLeaderboard();
+}
+
+function refreshLeaderboard() {
+    const leaderboardList = document.getElementById('leaderboard-list');
+    if (!leaderboardList) return;
+    
+    leaderboardList.innerHTML = '';
+    const leaderboard = LeaderboardStorage.getAll();
+    
+    if (leaderboard.length === 0) {
+        const emptyDiv = document.createElement('div');
+        emptyDiv.className = 'leaderboard-row';
+        emptyDiv.style.color = '#888';
+        emptyDiv.textContent = '暫無記錄';
+        leaderboardList.appendChild(emptyDiv);
+    } else {
+        leaderboard.forEach((record, i) => {
+            const div = document.createElement('div');
+            div.className = 'leaderboard-row';
+            
+            let rankEmoji = '';
+            if (i === 0) rankEmoji = '🥇';
+            else if (i === 1) rankEmoji = '🥈';
+            else if (i === 2) rankEmoji = '🥉';
+            
+            div.innerHTML = `
+                <span class="leaderboard-rank">${i+1}${rankEmoji ? ' ' + rankEmoji : ''}</span>
+                <span class="leaderboard-name">${record.name || '未命名'}</span>
+                <span class="leaderboard-score">${record.score} 分</span>
+            `;
+            leaderboardList.appendChild(div);
+        });
+    }
+}
+
+function clearLeaderboard() {
+    if (confirm('確定要清除所有排行榜記錄嗎？此操作無法復原。')) {
+        LeaderboardStorage.clear();
+        refreshLeaderboard();
+        updateHighScoresUI();
+        alert('排行榜記錄已清除');
+    }
+}
+
+// Make functions globally accessible
+window.clearLeaderboard = clearLeaderboard;
+window.showMainMenu = showMainMenu;
+window.closeNameModal = closeNameModal;
+window.confirmName = confirmName;
+
+function endGame() {
+    if (state.mode === 'GAMEOVER') return;
+    state.mode = 'GAMEOVER';
+    saveScore(state.score);
+    updateHighScoresUI();
+    
+    // Update player result card
+    const playerResult = document.getElementById('player-result');
+    const currentPlayerName = document.getElementById('current-player-name');
+    const currentPlayerScore = document.getElementById('current-player-score');
+    const endScreenSubtitle = document.getElementById('end-screen-subtitle');
+    
+    if (currentPlayerName) currentPlayerName.textContent = state.playerName || '未命名';
+    if (currentPlayerScore) currentPlayerScore.textContent = `${state.score} 分`;
+    
+    // Show player result card
+    if (playerResult) {
+        playerResult.style.display = 'block';
+        playerResult.innerHTML = `
+            <div style="font-size: 1.2rem; color: #e67e22; margin-bottom: 10px;">${state.playerName || '未命名'}</div>
+            <div class="player-result-score">${state.score} 分</div>
+        `;
+    }
+    
+    // Update subtitle based on score ranking
+    if (endScreenSubtitle) {
+        const leaderboard = LeaderboardStorage.getAll();
+        const playerRank = leaderboard.findIndex(r => r.name === state.playerName && r.score === state.score) + 1;
+        if (playerRank === 1 && leaderboard.length > 0 && leaderboard[0].name === state.playerName) {
+            endScreenSubtitle.textContent = '🎉 恭喜獲得最高分！';
+            endScreenSubtitle.style.color = '#e67e22';
+        } else if (playerRank <= 3) {
+            endScreenSubtitle.textContent = `👍 表現不錯！排名第 ${playerRank}`;
+            endScreenSubtitle.style.color = '#e67e22';
+        } else {
+            endScreenSubtitle.textContent = '繼續努力！';
+            endScreenSubtitle.style.color = '#666';
+        }
+    }
+    
+    uiElements.modalOverlay.style.display = 'flex';
+}
+
+function updateHUD() {
+    uiElements.scoreDisplay.textContent = `${Math.floor(state.score)} 分`;
+    uiElements.timerDisplay.textContent = `${Math.ceil(state.timeLeft)}s`;
+    
+    if (state.timeLeft <= 10) {
+        uiElements.timerDisplay.style.color = '#e74c3c';
+    } else {
+        uiElements.timerDisplay.style.color = '#f1c40f';
+    }
+}
+
+function spawnParticles(x, y) {
+    for (let i = 0; i < 15; i++) { // Optimized particle count
+        state.particles.push({
+            x: x,
+            y: y,
+            vx: (Math.random() - 0.5) * 10,
+            vy: (Math.random() - 0.5) * 10,
+            life: 1.0,
+            color: `hsl(${Math.random() * 360}, 100%, 60%)`
+        });
+    }
+}
+
+function updateParticles() {
+    for (let i = state.particles.length - 1; i >= 0; i--) {
+        let p = state.particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= 0.05; 
+        p.vy += 0.2; 
+        if (p.life <= 0) state.particles.splice(i, 1);
+    }
+}
+
+function updateAudience(dt) {
+    // Only animate jumping if cheering. Otherwise, they are static.
+    if (state.cheerTimer > 0) {
+        state.cheerTimer -= dt/1000;
+        // Logic for jumping is handled in drawActiveAudience
+    }
+}
+
+/**
+ * Update Loop
+ */
+function update(dt) {
+    updateAudience(dt);
+    
+    if (state.mode === 'PLAYING') {
+        state.timeLeft -= dt / 1000;
+        state.gameTimeElapsed += dt / 1000;
+        if (state.timeLeft <= 0) {
+            state.timeLeft = 0;
+            endGame();
+        }
+        updateHUD();
+
+        if (state.score >= CONFIG.movingTargetScore) {
+            const offset = Math.sin(state.gameTimeElapsed * 1.5) * 80;
+            target.rimY = target.baseRimY + offset;
+        } else {
+            target.rimY += (target.baseRimY - target.rimY) * 0.1;
+        }
+    }
+
+    updateParticles();
+
+    const restTipX = state.boardBaseX + Math.cos(CONFIG.restAngle) * CONFIG.boardLength;
+    const restTipY = state.boardBaseY + Math.sin(CONFIG.restAngle) * CONFIG.boardLength;
+
+    if (state.isDragging) {
+        const dx = state.dragX - state.boardBaseX;
+        const dy = state.dragY - state.boardBaseY;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        
+        const maxDist = CONFIG.boardLength + 40;
+        let newTipX = state.dragX;
+        let newTipY = state.dragY;
+        
+        if (dist > maxDist) {
+            const ratio = maxDist / dist;
+            newTipX = state.boardBaseX + dx * ratio;
+            newTipY = state.boardBaseY + dy * ratio;
+        }
+
+        const groundLimit = state.boardBaseY - CONFIG.ballRadius - 2; 
+        if (newTipY > groundLimit) newTipY = groundLimit;
+
+        state.boardTipX = newTipX;
+        state.boardTipY = newTipY;
+        ball.x = state.boardTipX; 
+        ball.y = state.boardTipY;
+
+    } else {
+        const k = CONFIG.stiffness;
+        const damp = 0.5; // Much stronger damping to settle almost instantly after release
+        const forceX = (restTipX - state.boardTipX) * k;
+        const forceY = (restTipY - state.boardTipY) * k;
+
+        state.boardVelocityX += forceX;
+        state.boardVelocityY += forceY;
+        state.boardVelocityX *= damp;
+        state.boardVelocityY *= damp;
+
+        state.boardTipX += state.boardVelocityX;
+        state.boardTipY += state.boardVelocityY;
+
+        // If very close to rest position, snap to it to avoid micro-oscillations
+        const distToRest = Math.hypot(state.boardTipX - restTipX, state.boardTipY - restTipY);
+        if (distToRest < 1.0 && Math.abs(state.boardVelocityX) < 0.2 && Math.abs(state.boardVelocityY) < 0.2) {
+            state.boardTipX = restTipX;
+            state.boardTipY = restTipY;
+            state.boardVelocityX = 0;
+            state.boardVelocityY = 0;
+        }
+    }
+
+    if (state.isBallFlying) {
+        ball.vy += CONFIG.gravity;
+        ball.vx *= CONFIG.friction;
+        ball.vy *= CONFIG.friction;
+        ball.x += ball.vx;
+        ball.y += ball.vy;
+        ball.rotation += ball.vx * 0.1;
+
+        if (ball.y + CONFIG.ballRadius > state.boardBaseY) {
+            ball.y = state.boardBaseY - CONFIG.ballRadius;
+            ball.vy *= -CONFIG.bounceFactor;
+            ball.vx *= CONFIG.groundFriction;
+            
+            if (Math.abs(ball.vy) < 1 && Math.abs(ball.vx) < 0.5 && state.mode === 'PLAYING') {
+                resetBall();
+            }
+        }
+        
+        if (ball.x + CONFIG.ballRadius > canvas.width) {
+            ball.x = canvas.width - CONFIG.ballRadius;
+            ball.vx *= -0.8;
+        }
+        if (ball.x - CONFIG.ballRadius < 0) {
+            ball.x = CONFIG.ballRadius;
+            ball.vx *= -0.8;
+        }
+
+        if (state.mode === 'PLAYING' || state.mode === 'SETUP') {
+            checkHoopCollisions();
+        }
+    }
+}
+
+// Three Hoops Configuration (2D coordinates)
+function getHoops2D() {
+    const canvasWidth = canvas.width || window.innerWidth;
+    // Move hoops further right (starting from 65% width)
+    const startX = canvasWidth * 0.65; 
+    const spacing = 150;
+    
+    return [
+        { x: startX + spacing * 0, y: state.boardBaseY - 120, rimWidth: 90, points: 20, label: '近距離', color: '#4CAF50' },
+        { x: startX + spacing * 1, y: state.boardBaseY - 200, rimWidth: 90, points: 50, label: '中距離', color: '#FFC107' },
+        { x: startX + spacing * 2, y: state.boardBaseY - 280, rimWidth: 90, points: 100, label: '遠距離', color: '#F44336' }
+    ];
+}
+
+let hoops2D = getHoops2D();
+
+function checkHoopCollisions() {
+    // Update moving hoop position
+    hoops2D.forEach(hoop => {
+        if (hoop.moving && state.mode === 'PLAYING') {
+            const time = state.gameTimeElapsed || 0;
+            hoop.x = hoop.baseX + Math.sin(time * 1.5) * 80;
+        }
+    });
+    
+    // Check collision with each hoop
+    hoops2D.forEach(hoop => {
+        const rimY = hoop.y;
+        const rimX_Front = hoop.x - hoop.rimWidth / 2;
+        const rimX_Back = hoop.x + hoop.rimWidth / 2;
+        const rimRadius = 4;
+        
+        // Backboard collision
+        if (ball.x + CONFIG.ballRadius > hoop.x - 5 && ball.x - CONFIG.ballRadius < hoop.x + 15) {
+            if (ball.y < rimY && ball.y > rimY - 80) {
+                ball.vx = -Math.abs(ball.vx) * 0.7;
+                ball.x = hoop.x - CONFIG.ballRadius - 1;
+            }
+        }
+        
+        // Rim collision
+        collideCirclePoint(rimX_Front, rimY, rimRadius);
+        collideCirclePoint(rimX_Back, rimY, rimRadius);
+        
+        // Score check (ball going down through rim)
+        if (ball.vy > 0 && !state.hasScoredThisFlight) {
+            if (ball.y > rimY && ball.y < rimY + 15) {
+                const centerBall = ball.x;
+                if (centerBall > rimX_Front + 5 && centerBall < rimX_Back - 5) {
+                    state.hasScoredThisFlight = true; // Mark as scored for this flight
+                    const points = hoop.points; // Use base points directly, no multiplier
+                    state.score += points;
+                    updateHUD();
+                    spawnParticles(ball.x, ball.y);
+                    state.cheerTimer = 1.0;
+                    
+                    // Show score popup
+                    showScorePopup(ball.x, ball.y, points, hoop.color);
+                    
+                    ball.vy = 2;
+                    setTimeout(() => {
+                        if (state.mode === 'PLAYING') resetBall();
+                    }, 600);
+                }
+            }
+        }
+    });
+}
+
+function showScorePopup(x, y, points, color) {
+    const praises = ['Swish!', 'Perfect!', 'Amazing!', 'Great!', 'Bullseye!'];
+    const praise = praises[Math.floor(Math.random() * praises.length)];
+    
+    // Create temporary score popup
+    const popup = document.createElement('div');
+    popup.className = 'juice-text';
+    popup.innerHTML = `
+        <div style="font-size: 32px; color: ${color};">${praise}</div>
+        <div style="font-size: 24px; color: white;">+${points}</div>
+    `;
+    popup.style.left = `${x}px`;
+    popup.style.top = `${y}px`;
+    
+    document.body.appendChild(popup);
+    setTimeout(() => popup.remove(), 1000);
+    
+    // Trigger Camera Shake
+    screenShake(10);
+    
+    // Trigger 3D Net Animation
+    animateNet();
+}
+
+let shakePower = 0;
+function screenShake(power) {
+    shakePower = power;
+}
+
+function animateNet() {
+    if (!hoops.length) return;
+    const hoop = hoops[0]; // Assuming single hoop
+    const net = hoop.children.find(c => c.geometry instanceof THREE.ConeGeometry);
+    if (net) {
+        // Simple scale and rotation animation for the net
+        let startTime = Date.now();
+        const duration = 500;
+        
+        function updateNet() {
+            let elapsed = Date.now() - startTime;
+            let progress = elapsed / duration;
+            if (progress < 1) {
+                let wave = Math.sin(progress * Math.PI * 10) * (1 - progress);
+                net.scale.set(1 + wave * 0.2, 1 - wave * 0.1, 1 + wave * 0.2);
+                net.rotation.z = wave * 0.1;
+                requestAnimationFrame(updateNet);
+            } else {
+                net.scale.set(1, 1, 1);
+                net.rotation.z = 0;
+            }
+        }
+        updateNet();
+    }
+}
+
+function collideCirclePoint(px, py, pr) {
+    const dx = ball.x - px;
+    const dy = ball.y - py;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const minDist = CONFIG.ballRadius + pr;
+
+    if (dist < minDist) {
+        const nx = dx / dist;
+        const ny = dy / dist;
+        const overlap = minDist - dist;
+        ball.x += nx * overlap;
+        ball.y += ny * overlap;
+        
+        const dot = ball.vx * nx + ball.vy * ny;
+        ball.vx = (ball.vx - 2 * dot * nx) * 0.7; 
+        ball.vy = (ball.vy - 2 * dot * ny) * 0.7;
+    }
+}
+
+/**
+ * Rendering
+ */
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 1. Draw Static Background (Cached)
+    ctx.drawImage(bgCanvas, 0, 0);
+    
+    // 2. Draw Audience
+    if (state.cheerTimer > 0) {
+        // Cheering: Calculate jumping here
+        drawActiveAudience();
+    } else {
+        // Static: Just draw the cached image
+        ctx.drawImage(audienceCanvas, 0, 0);
+    }
+    
+    // 3. Game Elements
+    drawBaseSlider();
+    drawHoop();
+    drawParticles();
+    drawElasticBoard();
+    drawBall();
+
+    if (state.isDragging) {
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.setLineDash([5, 5]);
+        ctx.lineWidth = 2;
+        ctx.moveTo(state.boardTipX, state.boardTipY);
+        
+        const restTipX = state.boardBaseX + Math.cos(CONFIG.restAngle) * CONFIG.boardLength;
+        const restTipY = state.boardBaseY + Math.sin(CONFIG.restAngle) * CONFIG.boardLength;
+        
+        ctx.lineTo(restTipX, restTipY);
+        ctx.stroke();
+        
+        drawTrajectory(restTipX, restTipY);
+        ctx.setLineDash([]);
+    }
+}
+
+function drawActiveAudience() {
+    // Only called when cheering
+    const time = Date.now() / 500;
+    state.audience.forEach(person => {
+        const jump = Math.abs(Math.sin(time * 10 + person.offset)) * 15;
+        const y = person.baseY - jump;
+        
+        ctx.fillStyle = person.color;
+        ctx.beginPath();
+        ctx.arc(person.x, y, 8, Math.PI, 0); 
+        ctx.fill();
+        
+        ctx.fillStyle = '#dcdcdc'; 
+        ctx.beginPath();
+        ctx.arc(person.x, y - 8, 4, 0, Math.PI * 2);
+        ctx.fill();
+    });
+}
+
+function drawBaseSlider() {
+    const y = state.boardBaseY + 25;
+    const startX = 50;
+    // Shortened by 1/4 (original factor was approx 1, now 0.75)
+    const endX = (canvas.width / 2 + 50) * 0.75; 
+    
+    ctx.beginPath();
+    ctx.moveTo(startX, y);
+    ctx.lineTo(endX, y);
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = '12px sans-serif';
+    ctx.fillText('拖動調整位置', startX, y + 20);
+
+    const handleX = Math.min(endX, Math.max(startX, state.boardBaseX));
+    state.boardBaseX = handleX; // Ensure base stays within slider
+    
+    ctx.beginPath();
+    ctx.roundRect(handleX - 15, y - 10, 30, 20, 5);
+    ctx.fillStyle = state.isMovingBase ? '#e67e22' : '#34495e';
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    ctx.beginPath();
+    ctx.moveTo(handleX, state.boardBaseY);
+    ctx.lineTo(handleX, y - 10);
+    ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+}
+
+function drawHoop() {
+    // Draw all hoops
+    hoops2D.forEach(hoop => {
+        const x = hoop.x;
+        const rimY = hoop.y;
+        const rimWidth = hoop.rimWidth;
+        
+        // Pole
+        ctx.fillStyle = '#555';
+        ctx.fillRect(x + 5, rimY - 50, 10, state.boardBaseY - (rimY - 50));
+        
+        // Backboard
+        ctx.fillStyle = 'rgba(236, 240, 241, 0.9)'; 
+        ctx.strokeStyle = '#2c3e50';
+        ctx.lineWidth = 3;
+        ctx.fillRect(x - 5, rimY - 80, 15, 80);
+        ctx.strokeRect(x - 5, rimY - 80, 15, 80);
+        
+        // Rim
+        ctx.beginPath();
+        ctx.moveTo(x, rimY);
+        ctx.lineTo(x - rimWidth / 2, rimY); 
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = hoop.color;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        
+        // Net (Improved visual)
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+        ctx.lineWidth = 1;
+        // Drawing a mesh-like net
+        const netHeight = 40;
+        const netWidth = rimWidth / 2;
+        for (let i = 0; i <= 4; i++) {
+            // Vertical ropes
+            const xPos = x - (netWidth * (i/4));
+            ctx.moveTo(xPos, rimY);
+            ctx.lineTo(x - (netWidth * 0.7) * (i/4), rimY + netHeight);
+            
+            // Horizontal ropes
+            if (i < 3) {
+                const yPos = rimY + (i + 1) * (netHeight / 4);
+                const currentW = netWidth - (netWidth * 0.3) * (yPos - rimY) / netHeight;
+                ctx.moveTo(x, yPos);
+                ctx.lineTo(x - currentW, yPos);
+            }
+        }
+        ctx.stroke();
+        
+        // Score label
+        ctx.fillStyle = hoop.color;
+        ctx.font = 'bold 16px Orbitron, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${hoop.points} P`, x - 30, rimY - 90);
+    });
+}
+
+function drawElasticBoard() {
+    const baseX = state.boardBaseX;
+    const baseY = state.boardBaseY;
+    const tipX = state.boardTipX;
+    const tipY = state.boardTipY;
+    const mat = CONFIG.material;
+
+    // 1. Support Pillars (3D style) - Drawn behind the arm
+    ctx.fillStyle = '#654321'; // Dark wood
+    ctx.fillRect(baseX - 18, baseY - 5, 6, 60);
+    ctx.fillRect(baseX + 12, baseY - 5, 6, 60);
+    
+    // Horizontal support
+    ctx.fillRect(baseX - 20, baseY + 45, 40, 5);
+
+    // 2. Arm (The moving part)
+    ctx.beginPath();
+    ctx.moveTo(baseX, baseY);
+    ctx.lineTo(tipX, tipY);
+    ctx.lineCap = 'round';
+    ctx.lineWidth = CONFIG.boardThickness;
+    ctx.strokeStyle = mat.color;
+    ctx.stroke();
+    
+    // Highlight for depth
+    ctx.strokeStyle = mat.highlight;
+    ctx.lineWidth = CONFIG.boardThickness * 0.3;
+    ctx.stroke();
+    
+    // Ball cup/holder
+    const angle = Math.atan2(tipY - baseY, tipX - baseX);
+    ctx.save();
+    ctx.translate(tipX, tipY);
+    ctx.rotate(angle);
+    ctx.fillStyle = '#444';
+    ctx.beginPath();
+    ctx.arc(0, 0, CONFIG.ballRadius * 1.2, -Math.PI/2, Math.PI/2);
+    ctx.fill();
+    // Inner cup detail
+    ctx.fillStyle = '#222';
+    ctx.beginPath();
+    ctx.arc(0, 0, CONFIG.ballRadius * 0.9, -Math.PI/2, Math.PI/2);
+    ctx.fill();
+    ctx.restore();
+
+    // 3. Metal Pivot Point (On top of pillars)
+    ctx.fillStyle = '#333';
+    ctx.beginPath();
+    ctx.arc(baseX, baseY, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#bdc3c7';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Pivot screw detail
+    ctx.fillStyle = '#7f8c8d';
+    ctx.beginPath();
+    ctx.arc(baseX, baseY, 2, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+function drawParticles() {
+    for (let p of state.particles) {
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.globalAlpha = 1.0;
+}
+
+function drawBall() {
+    ctx.save();
+    ctx.translate(ball.x, ball.y);
+    ctx.rotate(ball.rotation * Math.PI * 2);
+
+    // Using 🏀 Emoji for the ball
+    ctx.font = `${CONFIG.ballRadius * 2.5}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🏀', 0, 0);
+    
+    ctx.restore();
+}
+
+function drawTrajectory(restX, restY) {
+    const pullX = restX - state.boardTipX;
+    const pullY = restY - state.boardTipY;
+    
+    const power = CONFIG.stiffness * 1.8;
+    let simVx = pullX * power;
+    let simVy = pullY * power;
+    
+    let simX = state.boardTipX;
+    let simY = state.boardTipY;
+    
+    ctx.fillStyle = '#f39c12';
+    for (let i = 0; i < 30; i++) {
+        simX += simVx;
+        simY += simVy;
+        simVy += CONFIG.gravity;
+        simVx *= CONFIG.friction;
+        simVy *= CONFIG.friction;
+        
+        if (i % 3 === 0) {
+            ctx.beginPath();
+            ctx.arc(simX, simY, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        if (simY > state.boardBaseY) break;
+    }
+}
+
+function getPointerPos(e) {
+    if (e.touches) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    return { x: e.clientX, y: e.clientY };
+}
+
+function onPointerDown(e) {
+    const pos = getPointerPos(e);
+    
+    const handleY = state.boardBaseY + 25;
+    const handleX = state.boardBaseX;
+    const dxHandle = pos.x - handleX;
+    const dyHandle = pos.y - handleY;
+    
+    if (Math.abs(dxHandle) < 40 && Math.abs(dyHandle) < 30) {
+        state.isMovingBase = true;
+        return;
+    }
+
+    const dist = Math.hypot(pos.x - state.boardTipX, pos.y - state.boardTipY);
+    if (dist < 80) { 
+        state.isDragging = true;
+        state.dragX = pos.x;
+        state.dragY = pos.y;
+    }
+}
+
+function onPointerMove(e) {
+    if (!state.isDragging && !state.isMovingBase) return;
+    e.preventDefault();
+    const pos = getPointerPos(e);
+
+    if (state.isMovingBase) {
+        let newX = pos.x;
+        const startX = 50;
+        const endX = (canvas.width / 2 + 50) * 0.75;
+        
+        if (newX < startX) newX = startX;
+        if (newX > endX) newX = endX;
+        
+        state.boardBaseX = newX;
+        if (!state.isBallFlying) resetBall();
+    } else if (state.isDragging) {
+        state.dragX = pos.x;
+        state.dragY = pos.y;
+    }
+}
+
+function onPointerUp(e) {
+    state.isMovingBase = false;
+    if (!state.isDragging) return;
+    state.isDragging = false;
+    
+    if (state.mode === 'SETUP') return;
+    if (state.mode !== 'PLAYING') return;
+
+    const restTipX = state.boardBaseX + Math.cos(CONFIG.restAngle) * CONFIG.boardLength;
+    const restTipY = state.boardBaseY + Math.sin(CONFIG.restAngle) * CONFIG.boardLength;
+    
+    const pullX = restTipX - state.boardTipX;
+    const pullY = restTipY - state.boardTipY;
+    const pullDist = Math.sqrt(pullX*pullX + pullY*pullY);
+    
+    if (pullDist > 10) {
+        state.isBallFlying = true;
+        const power = CONFIG.stiffness * 1.8; 
+        ball.vx = pullX * power;
+        ball.vy = pullY * power;
+        ball.rotation = Math.random();
+        
+        // Trigger 3D Trebuchet Recoil
+        if (trebuchetGroup) {
+            trebuchetGroup.userData.recoil = 1.0;
+        }
+    }
+}
+
+function loop(timestamp) {
+    const dt = timestamp - state.lastTime;
+    state.lastTime = timestamp;
+    update(dt || 16);
+    draw();
+    
+    // Apply Camera Shake to 2D context or UI if needed
+    // In this case, we primarily use it for 3D camera
+    if (shakePower > 0.1) {
+        if (camera3D) {
+            camera3D.position.x += (Math.random() - 0.5) * shakePower;
+            camera3D.position.y += (Math.random() - 0.5) * shakePower;
+        }
+        shakePower *= 0.9; // Decay
+    } else if (camera3D) {
+        // Reset camera to standard position if not shaking
+        // This is a simplified follow logic
+        const targetX = 0;
+        const targetY = 50;
+        camera3D.position.x += (targetX - camera3D.position.x) * 0.1;
+        camera3D.position.y += (targetY - camera3D.position.y) * 0.1;
+    }
+    
+    requestAnimationFrame(loop);
+}
+
+init();
+</script>
+</body>
+</html>
+</html>

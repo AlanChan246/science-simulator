@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手搖風扇大挑戰</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
+        
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #f8fafc; 
+            user-select: none; 
+            touch-action: none; 
+            font-family: 'Noto Sans TC', sans-serif; 
+            color: #1e293b;
+        }
+        canvas { display: block; }
+        
+        /* UI Components */
+        .panel {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid #cbd5e1;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn-tool {
+            transition: all 0.1s;
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+        }
+        .btn-tool:hover { transform: translateY(-1px); border-color: #94a3b8; }
+        .btn-tool:active { transform: scale(0.95); }
+        .btn-tool.active {
+            border-color: #f59e0b;
+            background-color: #fffbeb;
+            box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-icon {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #cbd5e1;
+            transition: all 0.2s;
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+        }
+        .btn-icon:hover:not(:disabled) { background: #fff; transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .btn-icon:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed; inset: 0; 
+            background: rgba(15, 23, 42, 0.85); 
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .modal-content {
+            background: white; width: 800px; max-width: 95vw;
+            border-radius: 24px; padding: 0;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            overflow: hidden;
+            display: flex; flex-direction: column;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .modal-body { padding: 2.5rem; }
+        .modal-footer { background: #f1f5f9; padding: 1.5rem 2.5rem; display: flex; justify-content: space-between; align-items: center; }
+        
+        @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        /* Animations */
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes pan-grid { 0% { background-position: 0 0; } 100% { background-position: 60px 60px; } }
+        
+        .animate-spin-slow { animation: spin 20s linear infinite; }
+        .animate-spin-med { animation: spin 12s linear infinite; }
+        .animate-spin-reverse { animation: spin 15s linear infinite reverse; }
+        .animate-spin-fast { animation: spin 2s linear infinite; }
+        .animate-pan-grid { animation: pan-grid 4s linear infinite; }
+
+        .gear-visual { 
+            border: 4px dashed currentColor; 
+            border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 900; font-family: monospace;
+        }
+
+        /* Background Pattern */
+        .bg-grid-pattern {
+            background-color: #f0f9ff;
+            background-image: 
+                linear-gradient(rgba(14, 165, 233, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(14, 165, 233, 0.1) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+
+        .screen-full { position: absolute; inset: 0; background: #f8fafc; z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
+        .hidden { display: none !important; }
+        
+        .gear-svg { fill: currentColor; }
+    </style>
+</head>
+<body>
+
+    <!-- START SCREEN -->
+    <div id="startScreen" class="screen-full bg-grid-pattern animate-pan-grid">
+        <!-- Background Gears -->
+        <div class="absolute inset-0 pointer-events-none opacity-20 overflow-hidden">
+            <!-- Big Gear Top Left -->
+            <div class="absolute -top-20 -left-20 w-96 h-96 text-slate-400 animate-spin-slow">
+                <svg viewBox="0 0 100 100" class="w-full h-full gear-svg">
+                    <path d="M50 0 L55 10 L65 8 L68 18 L78 18 L79 28 L88 30 L87 40 L96 44 L92 54 L100 60 L94 68 L100 76 L92 82 L96 92 L86 94 L88 104 L78 104 L74 94 L64 96 L60 106 L50 100 L45 90 L35 92 L32 82 L22 82 L21 72 L12 70 L13 60 L4 56 L8 46 L0 40 L6 32 L0 24 L8 18 L4 8 L14 6 L12 -4 L22 -4 L26 6 L36 4 L40 -6 Z M50 25 A25 25 0 1 0 50 75 A25 25 0 1 0 50 25 Z" fill-rule="evenodd"/>
+                </svg>
+            </div>
+            <!-- Medium Gear Bottom Right -->
+            <div class="absolute -bottom-10 -right-10 w-80 h-80 text-cyan-300 animate-spin-reverse">
+                <svg viewBox="0 0 100 100" class="w-full h-full gear-svg">
+                    <path d="M50 10 L58 10 L62 20 L72 20 L76 10 L84 10 L88 20 L98 20 L94 30 L104 34 L100 44 L110 50 L100 56 L104 66 L94 70 L98 80 L88 80 L84 70 L76 70 L72 80 L62 80 L58 70 L50 70 L46 80 L36 80 L32 70 L24 70 L20 80 L10 80 L14 70 L4 66 L8 56 L-2 50 L8 44 L4 34 L14 30 L10 20 L20 20 L24 10 L32 10 L36 20 L46 20 Z M50 35 A15 15 0 1 0 50 65 A15 15 0 1 0 50 35 Z" fill-rule="evenodd"/>
+                </svg>
+            </div>
+            <!-- Small Gear Floating -->
+            <div class="absolute top-1/4 right-1/4 w-32 h-32 text-amber-200 animate-spin-med opacity-60">
+                <svg viewBox="0 0 100 100" class="w-full h-full gear-svg">
+                    <path d="M50 0 L60 0 L65 15 L80 15 L85 0 L95 0 L90 20 L100 25 L95 40 L110 50 L95 60 L100 75 L90 80 L95 100 L85 100 L80 85 L65 85 L60 100 L50 100 L45 85 L30 85 L25 100 L15 100 L20 80 L10 75 L15 60 L0 50 L15 40 L10 25 L20 20 L15 0 L25 0 L30 15 L45 15 L50 0 Z M50 35 A15 15 0 1 0 50 65 A15 15 0 1 0 50 35 Z" fill-rule="evenodd"/>
+                </svg>
+            </div>
+        </div>
+
+        <div class="text-center space-y-8 animate-fade-in relative z-10">
+            <h1 class="text-7xl font-black text-slate-800 tracking-tighter drop-shadow-sm">手搖風扇<span class="text-cyan-600">大挑戰</span></h1>
+            <p class="text-xl text-slate-500 font-medium tracking-wide">機械工程 x 物理沙盒</p>
+            
+            <div class="bg-white/80 backdrop-blur p-8 rounded-3xl shadow-xl border border-white/50 w-96 mx-auto">
+                <h3 class="font-bold text-slate-400 text-xs uppercase tracking-widest mb-6 border-b border-slate-100 pb-2">排行榜 (Top 3)</h3>
+                <div id="leaderboard" class="space-y-3 text-slate-700 font-mono text-sm">
+                    <!-- JS Populated -->
+                </div>
+            </div>
+
+            <button onclick="game.startBuild()" class="bg-gradient-to-r from-slate-800 to-slate-900 text-white hover:from-slate-700 hover:to-slate-800 px-12 py-5 rounded-full text-xl font-bold tracking-wide shadow-xl shadow-slate-900/20 transition-all hover:scale-105 hover:-translate-y-1">
+                開始建造
+            </button>
+        </div>
+    </div>
+
+    <!-- TUTORIAL POPUP (Modal) -->
+    <div id="tutorialModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            
+            <!-- Slide 1: Goal -->
+            <div id="tutSlide1" class="tut-slide">
+                <div class="modal-body text-center space-y-6">
+                    <h2 class="text-3xl font-black text-slate-800">工程挑戰：製造強風</h2>
+                    <p class="text-slate-500">直接轉動風扇太慢了！你需要利用 <span class="text-amber-500 font-bold">齒輪加速</span> 來擊倒遠處的目標。</p>
+                    
+                    <div class="flex justify-center gap-12 py-8 bg-slate-50 rounded-xl border border-slate-100">
+                        <div class="text-center opacity-50">
+                            <div class="w-24 h-24 rounded-full border-4 border-slate-300 flex items-center justify-center mb-2 mx-auto animate-spin-slow">🐢</div>
+                            <span class="text-sm font-bold text-slate-400">直接連接 (慢)</span>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-24 h-24 rounded-full border-4 border-cyan-500 flex items-center justify-center mb-2 mx-auto animate-spin-fast bg-cyan-50 text-cyan-600 font-bold text-2xl">⚡</div>
+                            <span class="text-sm font-bold text-cyan-600">齒輪加速 (快)</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <span class="text-slate-400 text-sm font-mono">1 / 5</span>
+                    <button onclick="UI.setSlide(2)" class="bg-cyan-500 hover:bg-cyan-600 text-white px-6 py-2 rounded-lg font-bold">原理說明 ➤</button>
+                </div>
+            </div>
+
+            <!-- Slide 2: Gear Physics -->
+            <div id="tutSlide2" class="tut-slide hidden">
+                <div class="modal-body text-center space-y-6">
+                    <h2 class="text-3xl font-black text-slate-800">物理原理：齒輪比</h2>
+                    <p class="text-slate-500">當大齒輪帶動小齒輪時，速度會倍增！</p>
+                    
+                    <!-- Animation Demo -->
+                    <div class="flex items-center justify-center gap-2 py-6 bg-slate-50 rounded-xl border border-slate-100 overflow-hidden relative">
+                        <!-- Driver -->
+                        <div class="flex flex-col items-center z-10">
+                            <div class="gear-visual w-32 h-32 text-amber-600 border-amber-500 bg-amber-100 animate-spin-slow">32T</div>
+                            <span class="text-xs font-bold mt-2 text-amber-600">輸入 (轉1圈)</span>
+                        </div>
+                        <!-- Teeth Meshing Icon -->
+                        <div class="text-2xl text-slate-300 animate-pulse">▶️</div>
+                        <!-- Driven -->
+                        <div class="flex flex-col items-center z-10">
+                            <div class="gear-visual w-16 h-16 text-cyan-600 border-cyan-500 bg-cyan-100 animate-spin-fast">8T</div>
+                            <span class="text-xs font-bold mt-2 text-cyan-600">輸出 (轉4圈!)</span>
+                        </div>
+                        
+                        <!-- Connecting Line visual -->
+                        <div class="absolute top-1/2 left-1/4 right-1/4 h-1 bg-slate-200 -z-0"></div>
+                    </div>
+                    
+                    <p class="text-sm font-mono text-emerald-600 bg-emerald-50 inline-block px-4 py-1 rounded-full border border-emerald-100">
+                        32齒 ÷ 8齒 = 4倍速度
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button onclick="UI.setSlide(1)" class="text-slate-400 hover:text-slate-600 font-bold">上一步</button>
+                    <button onclick="UI.setSlide(3)" class="bg-cyan-500 hover:bg-cyan-600 text-white px-6 py-2 rounded-lg font-bold">最強風扇藍圖 ➤</button>
+                </div>
+            </div>
+
+            <!-- Slide 3: Advanced Blueprint -->
+            <div id="tutSlide3" class="tut-slide hidden">
+                <div class="modal-body text-center space-y-4">
+                    <h2 class="text-3xl font-black text-slate-800">最強風扇藍圖</h2>
+                    <p class="text-slate-500 text-sm">利用 <span class="font-bold text-slate-700">複式齒輪 (Compound Gears)</span> 串聯多級加速！</p>
+                    
+                    <!-- SVG Diagram -->
+                    <div class="bg-white border-2 border-slate-200 rounded-xl p-4 shadow-inner mx-auto max-w-lg">
+                        <svg viewBox="0 0 400 120" class="w-full">
+                            <!-- Axle 1 -->
+                            <rect x="40" y="55" width="280" height="6" fill="#94a3b8" rx="3" />
+                            
+                            <!-- Stage 1: Crank to Big Gear -->
+                            <circle cx="50" cy="60" r="25" fill="none" stroke="#ef4444" stroke-width="4" stroke-dasharray="4" />
+                            <text x="50" y="100" text-anchor="middle" font-size="10" fill="#ef4444" font-weight="bold">曲柄</text>
+                            <path d="M50 60 L130 60" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="4"/>
+                            
+                            <circle cx="130" cy="60" r="30" fill="rgba(245, 158, 11, 0.2)" stroke="#d97706" stroke-width="2" />
+                            <text x="130" y="45" text-anchor="middle" font-size="10" fill="#d97706" font-weight="bold">大齒輪</text>
+
+                            <!-- Stage 2: Small Gear stacked on Big Gear -->
+                            <circle cx="200" cy="60" r="12" fill="rgba(14, 165, 233, 0.2)" stroke="#0ea5e9" stroke-width="2" />
+                            <text x="200" y="35" text-anchor="middle" font-size="10" fill="#0ea5e9" font-weight="bold">小+大(同軸)</text>
+                            <circle cx="200" cy="60" r="30" fill="rgba(245, 158, 11, 0.2)" stroke="#d97706" stroke-width="2" />
+                            
+                            <!-- Stage 3: Output -->
+                            <circle cx="270" cy="60" r="12" fill="rgba(14, 165, 233, 0.2)" stroke="#0ea5e9" stroke-width="2" />
+                            
+                            <rect x="310" y="30" width="10" height="60" fill="#0ea5e9" />
+                            <text x="315" y="105" text-anchor="middle" font-size="10" fill="#0ea5e9" font-weight="bold">風扇</text>
+                            
+                            <!-- Flow Arrows -->
+                            <path d="M70 70 L110 70" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+                            <path d="M150 70 L180 70" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+                            <path d="M220 70 L250 70" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+                            
+                            <defs>
+                                <marker id="arrow" markerWidth="10" markerHeight="10" refX="0" refY="3" orient="auto" markerUnits="strokeWidth">
+                                  <path d="M0,0 L0,6 L9,3 z" fill="#64748b" />
+                                </marker>
+                            </defs>
+                        </svg>
+                    </div>
+                    <div class="text-left text-xs text-slate-500 space-y-1 bg-slate-50 p-3 rounded-lg">
+                        <p>1. 曲柄帶動第一個<span class="text-amber-600 font-bold">大齒輪</span>。</p>
+                        <p>2. 第一個大齒輪帶動<span class="text-cyan-600 font-bold">小齒輪</span>。</p>
+                        <p>3. 關鍵：在那個小齒輪的<span class="text-purple-600 font-bold">同一位置(同軸)</span>再疊一個<span class="text-amber-600 font-bold">大齒輪</span>。</p>
+                        <p>4. 最後的大齒輪帶動風扇的小齒輪。</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button onclick="UI.setSlide(2)" class="text-slate-400 hover:text-slate-600 font-bold">上一步</button>
+                    <button onclick="UI.setSlide(4)" class="bg-cyan-500 hover:bg-cyan-600 text-white px-6 py-2 rounded-lg font-bold">遊戲規則 ➤</button>
+                </div>
+            </div>
+
+            <!-- Slide 4: Game Rules -->
+            <div id="tutSlide4" class="tut-slide hidden">
+                <div class="modal-body text-center space-y-6">
+                    <h2 class="text-3xl font-black text-slate-800">遊戲規則</h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-amber-50 p-4 rounded-xl border border-amber-100">
+                            <div class="text-2xl mb-1">⏱️</div>
+                            <h3 class="font-bold text-amber-800">30 秒限制</h3>
+                            <p class="text-xs text-amber-600">每次測試必須在時間內完成</p>
+                        </div>
+                        <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+                            <div class="text-2xl mb-1">🎯</div>
+                            <h3 class="font-bold text-emerald-800">全部擊倒</h3>
+                            <p class="text-xs text-emerald-600">紙杯必須全部掉落才能過關</p>
+                        </div>
+                        <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                            <div class="text-2xl mb-1">🏆</div>
+                            <h3 class="font-bold text-blue-800">累積得分</h3>
+                            <p class="text-xs text-blue-600">每擊落一個物體 +1 分</p>
+                        </div>
+                        <div class="bg-red-50 p-4 rounded-xl border border-red-100">
+                            <div class="text-2xl mb-1">🥫</div>
+                            <h3 class="font-bold text-red-800">難度升級</h3>
+                            <p class="text-xs text-red-600">第 6 關開始出現沉重的汽水罐！</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button onclick="UI.setSlide(3)" class="text-slate-400 hover:text-slate-600 font-bold">上一步</button>
+                    <button onclick="UI.setSlide(5)" class="bg-cyan-500 hover:bg-cyan-600 text-white px-6 py-2 rounded-lg font-bold">操作說明 ➤</button>
+                </div>
+            </div>
+
+            <!-- Slide 5: Controls -->
+            <div id="tutSlide5" class="tut-slide hidden">
+                <div class="modal-body text-center space-y-6">
+                    <h2 class="text-3xl font-black text-slate-800">準備出發</h2>
+                    <div class="grid grid-cols-2 gap-6 text-left">
+                        <div class="p-5 border rounded-2xl bg-white shadow-sm hover:shadow-md transition-shadow">
+                            <h3 class="font-bold text-slate-700 mb-2 flex items-center gap-2"><span class="text-2xl">🏗️</span> 藍圖模式</h3>
+                            <ul class="text-sm text-slate-500 list-disc list-inside space-y-2">
+                                <li>點擊左側零件</li>
+                                <li>點擊畫面任意位置放置</li>
+                                <li><strong>綠色</strong> = 連接成功</li>
+                                <li>齒輪會自動顯示為透明框線</li>
+                            </ul>
+                        </div>
+                        <div class="p-5 border rounded-2xl bg-white shadow-sm hover:shadow-md transition-shadow">
+                            <h3 class="font-bold text-slate-700 mb-2 flex items-center gap-2"><span class="text-2xl">🧪</span> 測試模式</h3>
+                            <ul class="text-sm text-slate-500 list-disc list-inside space-y-2">
+                                <li>拖曳 <span class="text-red-500 font-bold">紅色手把</span> 旋轉</li>
+                                <li>左側滑桿調整整機高度</li>
+                                <li>30 秒內全力衝刺！</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button onclick="UI.setSlide(4)" class="text-slate-400 hover:text-slate-600 font-bold">上一步</button>
+                    <button onclick="UI.closeTutorial()" class="bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-emerald-500/30 transform transition hover:scale-105">開始建造！🔨</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MAIN UI (Build Mode) -->
+    <div id="buildUI" class="absolute inset-0 z-10 pointer-events-none hidden">
+        
+        <!-- Top Bar: Navigation & Tools -->
+        <div class="pointer-events-auto absolute top-4 left-4 right-4 flex justify-between items-start">
+            <div class="flex gap-2">
+                <button onclick="game.goToStart()" class="btn-icon w-12 h-12 rounded-xl text-slate-400 hover:text-red-500 bg-white" title="返回主選單">
+                    <span class="text-xl font-bold">✕</span>
+                </button>
+                <div class="h-12 w-px bg-slate-300 mx-2"></div>
+                <button onclick="game.undo()" id="btnUndo" class="btn-icon w-12 h-12 rounded-xl text-slate-600 font-bold bg-white" title="復原 (Ctrl+Z)">
+                    ↶
+                </button>
+                <button onclick="game.redo()" id="btnRedo" class="btn-icon w-12 h-12 rounded-xl text-slate-600 font-bold bg-white" title="重做 (Ctrl+Y)">
+                    ↷
+                </button>
+                <button onclick="UI.openTutorial()" class="btn-icon w-12 h-12 rounded-xl text-slate-600 font-bold bg-white ml-2" title="說明">
+                    ?
+                </button>
+            </div>
+
+            <div class="panel px-6 py-2 rounded-full flex gap-3 items-center shadow-sm">
+                <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                <span class="font-bold text-slate-600 text-xs tracking-widest uppercase">藍圖模式</span>
+            </div>
+
+            <button onclick="game.enterTestMode()" class="pointer-events-auto px-8 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-lg shadow-lg shadow-emerald-500/20 transition-transform hover:scale-105 flex items-center gap-2">
+                測試 <span>➤</span>
+            </button>
+        </div>
+
+        <!-- Left Toolbar -->
+        <div class="absolute left-6 top-24 bottom-24 w-20 flex flex-col gap-4 pointer-events-auto overflow-y-auto no-scrollbar">
+            <div class="panel p-2 rounded-2xl flex flex-col gap-2 items-center">
+                <div class="text-[8px] font-bold text-slate-400 uppercase tracking-widest text-center mt-1">零件</div>
+                
+                <button class="btn-tool w-14 h-14 rounded-xl flex flex-col items-center justify-center gap-1 active" onclick="game.setTool('crank', this)">
+                    <div class="w-5 h-5 rounded-full border-2 border-red-500 bg-red-100"></div>
+                    <span class="text-[9px] text-slate-500">曲柄</span>
+                </button>
+
+                <div class="w-10 h-px bg-slate-200 my-1"></div>
+
+                <button class="btn-tool w-14 h-14 rounded-xl flex flex-col items-center justify-center gap-1" onclick="game.setTool('gear_small', this)">
+                    <div class="w-4 h-4 rounded-full border border-amber-500 bg-amber-50"></div>
+                    <span class="text-[9px] text-slate-500">小(8T)</span>
+                </button>
+                <button class="btn-tool w-14 h-14 rounded-xl flex flex-col items-center justify-center gap-1" onclick="game.setTool('gear_medium', this)">
+                    <div class="w-6 h-6 rounded-full border border-amber-500 bg-amber-50"></div>
+                    <span class="text-[9px] text-slate-500">中(16T)</span>
+                </button>
+                <button class="btn-tool w-14 h-14 rounded-xl flex flex-col items-center justify-center gap-1" onclick="game.setTool('gear_large', this)">
+                    <div class="w-8 h-8 rounded-full border border-amber-500 bg-amber-50"></div>
+                    <span class="text-[9px] text-slate-500">大(32T)</span>
+                </button>
+
+                <div class="w-10 h-px bg-slate-200 my-1"></div>
+
+                <button class="btn-tool w-14 h-14 rounded-xl flex flex-col items-center justify-center gap-1" onclick="game.setTool('fan', this)">
+                    <div class="w-6 h-6 rounded-full border-2 border-cyan-500 bg-cyan-50 flex items-center justify-center text-[8px] animate-spin-slow">☢</div>
+                    <span class="text-[9px] text-slate-500">風扇</span>
+                </button>
+            </div>
+
+            <div class="panel p-2 rounded-2xl flex flex-col gap-2 items-center">
+                <button class="btn-tool w-14 h-14 rounded-xl border-red-200 hover:bg-red-50 flex flex-col items-center justify-center gap-1" onclick="game.setTool('delete', this)">
+                    <span class="text-xl text-red-400">✕</span>
+                    <span class="text-[9px] text-red-400">刪除</span>
+                </button>
+                <button class="btn-tool w-14 h-10 rounded-xl flex items-center justify-center text-slate-600" onclick="game.reset()">
+                    <span class="text-base">↻</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Material Selector -->
+        <div id="fanSettings" class="pointer-events-auto absolute bottom-8 left-1/2 -translate-x-1/2 panel px-6 py-3 rounded-full flex items-center gap-4 hidden">
+            <span class="font-bold text-cyan-600 text-xs tracking-wider uppercase">扇葉材質</span>
+            <div class="flex gap-2">
+                <button onclick="game.setMat('plastic')" id="mat-plastic" class="px-3 py-1 bg-cyan-100 border border-cyan-300 text-cyan-800 rounded-md text-xs font-bold ring-2 ring-cyan-500">塑膠</button>
+                <button onclick="game.setMat('metal')" id="mat-metal" class="px-3 py-1 bg-slate-100 border border-slate-300 text-slate-600 rounded-md text-xs font-bold opacity-50">金屬</button>
+                <button onclick="game.setMat('paper')" id="mat-paper" class="px-3 py-1 bg-orange-50 border border-orange-200 text-orange-800 rounded-md text-xs font-bold opacity-50">紙</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TEST UI -->
+    <div id="testUI" class="absolute inset-0 z-10 pointer-events-none hidden">
+        
+        <!-- Top Bar -->
+        <div class="pointer-events-auto absolute top-4 left-4 right-4 flex justify-between items-start">
+            <div class="flex gap-2">
+                <button onclick="game.goToStart()" class="btn-icon w-12 h-12 rounded-xl text-slate-400 hover:text-red-500 bg-white" title="返回主選單">
+                    <span class="text-xl font-bold">✕</span>
+                </button>
+                <button onclick="game.enterBuildMode()" class="btn-icon px-5 h-12 rounded-xl text-slate-600 font-bold text-sm gap-2 bg-white">
+                    <span>🡐</span> 編輯藍圖
+                </button>
+            </div>
+
+            <!-- Score -->
+            <div class="flex flex-col gap-2 items-end">
+                <div class="panel px-6 py-2 rounded-xl flex items-center gap-6">
+                    <div class="text-center">
+                        <div class="text-[9px] text-slate-400 uppercase tracking-widest font-bold">分數</div>
+                        <div class="text-2xl font-black text-amber-500" id="gameScore">0</div>
+                    </div>
+                    <div class="w-px h-8 bg-slate-200"></div>
+                    <div class="text-center">
+                        <div class="text-[9px] text-slate-400 uppercase tracking-widest font-bold">關卡</div>
+                        <div class="text-2xl font-black text-slate-800" id="gameTower">1</div>
+                    </div>
+                </div>
+                
+                <!-- RPM -->
+                <div class="panel px-4 py-2 rounded-xl text-right w-40">
+                    <div class="flex justify-between items-baseline">
+                        <span class="text-[9px] text-slate-400 uppercase font-bold">轉速</span>
+                        <span class="text-lg font-mono font-black text-cyan-600" id="powerMeter">0</span>
+                    </div>
+                    <div class="w-full h-1 bg-slate-100 rounded-full mt-1 overflow-hidden">
+                        <div id="powerBar" class="h-full bg-cyan-500 w-0 transition-all duration-75"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timer Center -->
+        <div class="absolute top-4 left-1/2 -translate-x-1/2 panel px-8 py-3 rounded-2xl flex flex-col items-center shadow-lg border-b-4 border-slate-200">
+            <div class="text-[9px] text-slate-400 uppercase font-bold tracking-widest">剩餘時間</div>
+            <div class="text-3xl font-black text-slate-800 tabular-nums" id="timerDisplay">30.0</div>
+        </div>
+
+        <!-- Height Slider -->
+        <div id="heightControl" class="pointer-events-auto slider-wrapper panel rounded-r-2xl border-l-0">
+             <input type="range" id="machineHeightSlider" min="-150" max="150" value="0" class="vertical-range">
+             <div class="absolute -right-10 top-1/2 -translate-y-1/2 -rotate-90 text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap tracking-widest">高度調整</div>
+        </div>
+    </div>
+
+    <!-- END UI -->
+    <div id="endScreen" class="screen-full hidden">
+        <div class="text-center space-y-4 animate-fade-in">
+            <h2 class="text-6xl font-black text-slate-800">時間到！</h2>
+            <div class="bg-white p-10 rounded-3xl shadow-xl border border-slate-100 w-full max-w-md mx-auto my-8">
+                <div class="text-8xl font-black text-cyan-500 mb-2" id="finalScoreDisplay">0</div>
+                <p class="text-slate-400 font-bold uppercase tracking-widest text-sm">擊倒數量</p>
+            </div>
+            <button onclick="game.goToStart()" class="bg-slate-800 hover:bg-slate-700 text-white px-12 py-4 rounded-full font-bold shadow-lg transition-all hover:scale-105">
+                返回主選單
+            </button>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas" class="cursor-crosshair"></canvas>
+
+<script>
+window.onload = function() {
+    
+    // --- Configuration ---
+    const CONFIG = {
+        WORKSHOP_RATIO: 0.4,
+        BASE_WIND: 0.0015,
+        GAME_DURATION: 30,
+        COLORS: {
+            grid: '#e2e8f0',
+            gridMajor: '#cbd5e1',
+            crank: '#ef4444',
+            crankOutline: '#991b1b',
+            gearStroke: '#d97706',
+            gearFill: 'transparent', 
+            fan: '#0ea5e9',
+            fanOutline: '#0369a1',
+            valid: 'rgba(34, 197, 94, 0.4)',
+            invalid: 'rgba(239, 68, 68, 0.4)',
+            link: '#4ade80'
+        }
+    };
+
+    const PARTS = {
+        crank: { type: 'crank', radius: 25, teeth: 16 },
+        gear_small: { type: 'gear', radius: 20, teeth: 8 },
+        gear_medium: { type: 'gear', radius: 40, teeth: 16 },
+        gear_large: { type: 'gear', radius: 80, teeth: 32 },
+        fan: { type: 'fan', radius: 45, teeth: 16 }
+    };
+
+    const MATS = {
+        plastic: { color: '#0ea5e9', weight: 1.0, mult: 1.0 },
+        metal: { color: '#64748b', weight: 4.0, mult: 2.0 },
+        paper: { color: '#f59e0b', weight: 0.2, mult: 0.5 }
+    };
+
+    const LEVELS = {
+        CUP: { color: '#f8fafc', stroke: '#94a3b8', density: 0.005 },
+        CAN: { color: '#ef4444', stroke: '#991b1b', density: 0.02 }
+    };
+
+    // --- State Management ---
+    const state = {
+        screen: 'start',
+        tool: 'crank',
+        material: 'plastic',
+        parts: [],
+        history: [],
+        historyIndex: -1,
+        
+        view: { x: 0, y: 0 },
+        machineHeight: 0, 
+        crankAngle: 0,
+        crankVel: 0,
+        friction: 0.95, 
+        wind: 0,
+        
+        timeLeft: 30,
+        score: 0,
+        towerCount: 1,
+        
+        mouse: { x: 0, y: 0, rawX: 0, rawY: 0 },
+        interaction: { active: false, center: null, lastAngle: 0 },
+        hoverLinks: [],
+        ripple: null
+    };
+
+    // --- Physics Engine ---
+    const Engine = Matter.Engine,
+          Composite = Matter.Composite,
+          Bodies = Matter.Bodies,
+          Body = Matter.Body;
+
+    const engine = Engine.create();
+    engine.gravity.y = 1;
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+    let cupBodies = [], tableBody;
+
+    // --- Undo/Redo ---
+    function saveState() {
+        if (state.historyIndex < state.history.length - 1) {
+            state.history = state.history.slice(0, state.historyIndex + 1);
+        }
+        state.history.push(JSON.parse(JSON.stringify(state.parts)));
+        state.historyIndex++;
+        updateUndoRedoButtons();
+    }
+
+    function undo() {
+        if (state.historyIndex > 0) {
+            state.historyIndex--;
+            state.parts = JSON.parse(JSON.stringify(state.history[state.historyIndex]));
+            calcMachine();
+            updateUndoRedoButtons();
+        }
+    }
+
+    function redo() {
+        if (state.historyIndex < state.history.length - 1) {
+            state.historyIndex++;
+            state.parts = JSON.parse(JSON.stringify(state.history[state.historyIndex]));
+            calcMachine();
+            updateUndoRedoButtons();
+        }
+    }
+
+    function updateUndoRedoButtons() {
+        document.getElementById('btnUndo').disabled = state.historyIndex <= 0;
+        document.getElementById('btnRedo').disabled = state.historyIndex >= state.history.length - 1;
+    }
+
+    // --- UI API ---
+    window.UI = {
+        setSlide: (n) => {
+            [1,2,3,4,5].forEach(i => document.getElementById(`tutSlide${i}`).classList.add('hidden'));
+            document.getElementById(`tutSlide${n}`).classList.remove('hidden');
+        },
+        openTutorial: () => { 
+            document.getElementById('tutorialModal').classList.remove('hidden'); 
+            UI.setSlide(1);
+        },
+        closeTutorial: () => { document.getElementById('tutorialModal').classList.add('hidden'); }
+    };
+
+    window.game = {
+        goToStart: () => {
+            state.screen = 'start';
+            showUI('startScreen');
+            updateLeaderboard();
+        },
+        startBuild: () => {
+            state.parts = [];
+            state.history = [];
+            state.historyIndex = -1;
+            addPart(width/2, height/2, 'crank'); 
+            UI.openTutorial(); 
+            enterBuild();
+        },
+        enterBuildMode: () => {
+            enterBuild();
+        },
+        enterTestMode: () => {
+            state.screen = 'test';
+            state.timeLeft = CONFIG.GAME_DURATION;
+            state.score = 0;
+            state.towerCount = 1;
+            showUI('testUI');
+            calcMachine();
+            centerCamera();
+            setupLevel();
+            const slider = document.getElementById('heightControl');
+            if(state.parts.some(p => p.type === 'fan')) slider.classList.remove('hidden');
+            else slider.classList.add('hidden');
+        },
+        setTool: (t, el) => {
+            state.tool = t;
+            document.querySelectorAll('.btn-tool').forEach(b => b.classList.remove('active'));
+            if(el) el.classList.add('active');
+            const fs = document.getElementById('fanSettings');
+            if(t === 'fan') fs.classList.remove('hidden'); else fs.classList.add('hidden');
+        },
+        setMat: (m) => {
+            state.material = m;
+            ['plastic','metal','paper'].forEach(type => {
+                const b = document.getElementById('mat-'+type);
+                b.style.opacity = type===m ? '1' : '0.5';
+                if(type===m) b.classList.add('ring-2', 'ring-cyan-500'); 
+                else b.classList.remove('ring-2');
+            });
+        },
+        reset: () => {
+            state.parts = [];
+            addPart(width/2, height/2, 'crank');
+        },
+        undo: undo,
+        redo: redo
+    };
+
+    function enterBuild() {
+        state.screen = 'build';
+        showUI('buildUI');
+        state.view = { x: 0, y: 0 };
+        Composite.clear(engine.world); 
+        state.crankVel = 0;
+    }
+
+    function showUI(id) {
+        ['startScreen', 'tutorialModal', 'buildUI', 'testUI', 'endScreen'].forEach(uid => {
+            const el = document.getElementById(uid);
+            if(uid === id) el.classList.remove('hidden');
+            else if(uid !== 'tutorialModal') el.classList.add('hidden'); 
+        });
+    }
+
+    function updateLeaderboard() {
+        const scores = JSON.parse(localStorage.getItem('cb_scores')) || [];
+        const html = scores.slice(0, 3).map((s, i) => 
+            `<div class="flex justify-between font-mono border-b border-slate-100 py-1"><span>${i+1}. Engineer</span><span class="font-bold text-cyan-600">${s.score}</span></div>`
+        ).join('');
+        document.getElementById('leaderboard').innerHTML = html || '<div class="text-center italic text-slate-400 py-2">No records yet</div>';
+    }
+
+    // --- Init ---
+    updateLeaderboard();
+    onResize();
+
+    function addPart(x, y, type) {
+        if(type === 'fan' || type === 'crank') {
+            const idx = state.parts.findIndex(p => p.type === type);
+            if(idx !== -1) state.parts.splice(idx, 1);
+        }
+        const dup = state.parts.find(p => p.type === type && Math.abs(p.x - x) < 5 && Math.abs(p.y - y) < 5);
+        if(dup) return;
+
+        const part = {
+            id: Math.random(), type, x, y,
+            def: PARTS[type],
+            angle: 0, ratio: 0, connected: false
+        };
+        if(type === 'fan') part.material = state.material;
+        
+        state.parts.push(part);
+        
+        // SORT: Gears (0) FIRST, Others (1) LAST
+        state.parts.sort((a,b) => (a.type === 'gear' ? 0 : 1) - (b.type === 'gear' ? 0 : 1));
+
+        saveState(); 
+        calcMachine();
+    }
+
+    function calcMachine() {
+        state.parts.forEach(p => { p.connected = false; p.ratio = 0; p.visited = false; });
+        const crank = state.parts.find(p => p.type === 'crank');
+        if(!crank) return;
+
+        crank.connected = true;
+        crank.ratio = 1;
+        let queue = [crank];
+        crank.visited = true;
+        let totalMass = 0;
+
+        while(queue.length > 0) {
+            let curr = queue.shift();
+            totalMass += (curr.type==='fan' ? MATS[curr.material].weight : 0.5);
+
+            state.parts.forEach(other => {
+                if(other.visited || other === curr) return;
+                const d = Math.hypot(curr.x - other.x, curr.y - other.y);
+                const rSum = curr.def.radius + other.def.radius;
+                
+                let valid = false, ratioM = 1, dirM = 1;
+                if(d < 15) { valid = true; ratioM = 1; dirM = 1; }
+                else if(Math.abs(d - rSum) < 15) { 
+                    valid = true; 
+                    ratioM = curr.def.teeth / other.def.teeth;
+                    dirM = -1;
+                }
+
+                if(valid) {
+                    other.ratio = curr.ratio * ratioM;
+                    other.direction = (curr.direction || 1) * dirM;
+                    other.connected = true;
+                    other.visited = true;
+                    queue.push(other);
+                }
+            });
+        }
+        state.friction = Math.max(0.85, 0.98 - (totalMass * 0.005));
+    }
+
+    function centerCamera() {
+        if(state.parts.length === 0) return;
+        let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
+        state.parts.forEach(p => {
+            minX = Math.min(minX, p.x - p.def.radius);
+            maxX = Math.max(maxX, p.x + p.def.radius);
+            minY = Math.min(minY, p.y - p.def.radius);
+            maxY = Math.max(maxY, p.y + p.def.radius);
+        });
+        const panelW = width * CONFIG.WORKSHOP_RATIO;
+        const midX = minX + (maxX - minX)/2;
+        const midY = minY + (maxY - minY)/2;
+        state.view.x = (panelW / 2) - midX;
+        state.view.y = (height / 2) - midY;
+    }
+
+    function setupLevel() {
+        Composite.clear(engine.world);
+        cupBodies = [];
+        
+        const panelStart = width * CONFIG.WORKSHOP_RATIO;
+        const panelW = width * (1 - CONFIG.WORKSHOP_RATIO);
+        const tableX = panelStart + (panelW * 0.8); 
+        const tableY = height - 100;
+
+        tableBody = Bodies.rectangle(tableX, tableY, 140, 20, { 
+            isStatic: true, render: { fillStyle: '#64748b' } 
+        });
+        Composite.add(engine.world, tableBody);
+
+        const type = state.towerCount > 5 ? LEVELS.CAN : LEVELS.CUP;
+        const rows = 6, sz = 20;
+        
+        for(let r=0; r<rows; r++) {
+            for(let c=0; c<=r; c++) {
+                const x = tableX - (r * sz * 0.5) + (c * sz);
+                const y = (tableY - 10) - (sz/2) - ((rows-1-r)*sz) - 2;
+                const cup = Bodies.rectangle(x, y, sz, sz*1.4, {
+                    render: { fillStyle: type.color, strokeStyle: type.stroke, lineWidth: 1 },
+                    density: type.density, 
+                    friction: 0.8, 
+                    frictionAir: 0.002
+                });
+                cupBodies.push(cup);
+            }
+        }
+        Composite.add(engine.world, cupBodies);
+        
+        document.getElementById('gameTower').innerText = state.towerCount;
+        document.getElementById('gameTower').style.color = state.towerCount > 5 ? '#ef4444' : '#1e293b';
+    }
+
+    function loop() {
+        update();
+        draw();
+        requestAnimationFrame(loop);
+    }
+    
+    function update() {
+        if(state.screen === 'test') {
+            state.timeLeft -= 1/60;
+            if(state.timeLeft <= 0) {
+                endGame();
+                return;
+            }
+            document.getElementById('timerDisplay').innerText = state.timeLeft.toFixed(1);
+
+            state.crankAngle += state.crankVel;
+            state.crankVel *= state.friction;
+            if(Math.abs(state.crankVel) < 0.001) state.crankVel = 0;
+
+            state.wind = 0;
+            state.parts.forEach(p => {
+                if(p.connected) {
+                    p.angle = state.crankAngle * p.ratio * (p.direction || 1);
+                    if(p.type === 'fan') {
+                        const speed = Math.abs(state.crankVel * p.ratio);
+                        const power = speed * MATS[p.material].mult * CONFIG.BASE_WIND;
+                        state.wind = Math.max(state.wind, power);
+                        if(power > 0.0001) applyWind(p, power);
+                    }
+                }
+            });
+
+            for(let i=cupBodies.length-1; i>=0; i--) {
+                const cup = cupBodies[i];
+                if(cup.position.y > height + 50) {
+                    state.score++;
+                    Composite.remove(engine.world, cup);
+                    cupBodies.splice(i, 1);
+                }
+            }
+            if(cupBodies.length === 0) {
+                state.towerCount++;
+                setupLevel();
+            }
+
+            document.getElementById('powerBar').style.width = Math.min(state.wind*4000, 100) + '%';
+            document.getElementById('powerMeter').innerText = (state.wind*1000).toFixed(0);
+            document.getElementById('gameScore').innerText = state.score;
+            
+            Engine.update(engine, 1000/60);
+        }
+    }
+
+    function applyWind(fan, power) {
+        const fx = fan.x + state.view.x;
+        const fy = fan.y + state.view.y + state.machineHeight;
+        cupBodies.forEach(b => {
+            const dx = b.position.x - fx;
+            const dy = b.position.y - fy;
+            if(dx > 0 && dx < 1500) {
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                if(Math.abs(dy/dx) < 0.5) {
+                    const force = power / (1 + dist*0.001);
+                    Body.applyForce(b, b.position, { x: force, y: (Math.random()-0.5)*(force*0.2) });
+                }
+            }
+        });
+    }
+
+    function endGame() {
+        state.screen = 'end';
+        showUI('endScreen');
+        document.getElementById('finalScoreDisplay').innerText = state.score;
+        
+        const scores = JSON.parse(localStorage.getItem('cb_scores')) || [];
+        const date = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        scores.push({ score: state.score, date: date });
+        scores.sort((a,b) => b.score - a.score);
+        localStorage.setItem('cb_scores', JSON.stringify(scores));
+        updateLeaderboard();
+    }
+
+    function draw() {
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillRect(0, 0, width, height);
+
+        if(state.screen === 'start' || state.screen === 'end') return;
+
+        if(state.screen === 'build') {
+            drawGrid();
+            // DRAW: Gears (Background)
+            state.parts.forEach(p => { if(p.type === 'gear') drawPart(p, 0); });
+            // DRAW: Ghost
+            drawGhost(); 
+            // DRAW: Crank/Fan (Foreground)
+            state.parts.forEach(p => { if(p.type !== 'gear') drawPart(p, 0); });
+        } 
+        else if(state.screen === 'test') {
+            const split = width * CONFIG.WORKSHOP_RATIO;
+            ctx.fillStyle = '#f1f5f9';
+            ctx.fillRect(0,0,split,height); 
+            ctx.strokeStyle = '#e2e8f0'; ctx.beginPath(); ctx.moveTo(split,0); ctx.lineTo(split,height); ctx.stroke();
+
+            ctx.save();
+            ctx.translate(state.view.x, state.view.y + state.machineHeight);
+            
+            ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 6; ctx.beginPath();
+            state.parts.forEach(p => {
+                state.parts.forEach(o => {
+                    if(p!==o && Math.hypot(p.x-o.x, p.y-o.y)<20) { ctx.moveTo(p.x,p.y); ctx.lineTo(o.x,o.y); }
+                });
+            });
+            ctx.stroke();
+
+            // Layer 1: Gears (Wireframe)
+            state.parts.forEach(p => { if(p.type === 'gear') drawPart(p, 0); });
+            
+            // Layer 2: Rail
+            const fan = state.parts.find(p => p.type === 'fan');
+            if(fan) {
+                ctx.fillStyle = '#cbd5e1'; ctx.fillRect(fan.x-4, fan.y-200, 8, 400);
+            }
+            
+            // Layer 3: Crank/Fan
+            state.parts.forEach(p => { if(p.type !== 'gear') drawPart(p, 0); });
+            
+            ctx.restore();
+
+            drawParticles();
+            
+            cupBodies.forEach(b => {
+                const type = state.towerCount > 5 ? LEVELS.CAN : LEVELS.CUP;
+                ctx.fillStyle = type.color; 
+                ctx.strokeStyle = type.stroke; 
+                ctx.lineWidth = 1;
+                ctx.beginPath(); 
+                ctx.moveTo(b.vertices[0].x, b.vertices[0].y);
+                for(let i=1; i<b.vertices.length; i++) ctx.lineTo(b.vertices[i].x, b.vertices[i].y);
+                ctx.closePath(); ctx.fill(); ctx.stroke();
+            });
+            if(tableBody) {
+                ctx.fillStyle = '#64748b'; ctx.beginPath(); 
+                ctx.moveTo(tableBody.vertices[0].x, tableBody.vertices[0].y);
+                for(let i=1; i<tableBody.vertices.length; i++) ctx.lineTo(tableBody.vertices[i].x, tableBody.vertices[i].y);
+                ctx.fill();
+            }
+        }
+
+        if(state.ripple) {
+            ctx.beginPath(); ctx.arc(state.ripple.x, state.ripple.y, state.ripple.r, 0, Math.PI*2);
+            ctx.strokeStyle = `rgba(14, 165, 233, ${state.ripple.a})`; ctx.stroke();
+            state.ripple.r += 3; state.ripple.a -= 0.05;
+            if(state.ripple.a <= 0) state.ripple = null;
+        }
+    }
+
+    function drawGrid() {
+        ctx.lineWidth = 1;
+        for(let x=0; x<width; x+=20) {
+            ctx.strokeStyle = x%100===0 ? '#cbd5e1' : '#f1f5f9';
+            ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,height); ctx.stroke();
+        }
+        for(let y=0; y<height; y+=20) {
+            ctx.strokeStyle = y%100===0 ? '#cbd5e1' : '#f1f5f9';
+            ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(width,y); ctx.stroke();
+        }
+    }
+
+    function drawPart(p, yOff) {
+        ctx.save();
+        ctx.translate(p.x, p.y + yOff);
+        ctx.rotate(p.angle);
+        
+        if(p.def.type === 'gear') {
+            // WIREFRAME GEAR - TRANSPARENT FILL
+            ctx.strokeStyle = CONFIG.COLORS.gearStroke; 
+            ctx.lineWidth = 2;
+            
+            // Draw path for gear
+            ctx.beginPath();
+            for(let i=0; i<p.def.teeth; i++) {
+                const a = (Math.PI*2/p.def.teeth)*i;
+                ctx.save(); ctx.rotate(a);
+                ctx.rect(-3, -p.def.radius, 6, 8); 
+                ctx.restore();
+            }
+            ctx.arc(0,0,p.def.radius-4,0,Math.PI*2); 
+            ctx.stroke(); 
+            
+            // Axle (Filled)
+            ctx.fillStyle='#78350f'; ctx.beginPath(); ctx.arc(0,0,5,0,Math.PI*2); ctx.fill();
+        } 
+        else if(p.def.type === 'crank') {
+            ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 10;
+            ctx.fillStyle='#b91c1c'; ctx.beginPath(); ctx.roundRect(-8,-8,50,16,8); ctx.fill();
+            ctx.fillStyle='#fca5a5'; ctx.beginPath(); ctx.arc(35,0,12,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle='#7f1d1d'; ctx.beginPath(); ctx.arc(0,0,10,0,Math.PI*2); ctx.fill();
+            ctx.shadowBlur = 0;
+        } 
+        else {
+            const c = MATS[p.material]?.color;
+            ctx.fillStyle = c;
+            for(let i=0; i<3; i++) {
+                ctx.save(); ctx.rotate((Math.PI*2/3)*i);
+                ctx.beginPath(); ctx.ellipse(25,0,25,8,0,0,Math.PI*2); ctx.fill(); ctx.restore();
+            }
+            ctx.strokeStyle='#0369a1'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(0,0,p.def.radius,0,Math.PI*2); ctx.stroke();
+            ctx.fillStyle='#0f172a'; ctx.beginPath(); ctx.arc(0,0,6,0,Math.PI*2); ctx.fill();
+        }
+        ctx.restore();
+    }
+
+    function drawGhost() {
+        if(state.tool === 'delete') return;
+        
+        state.hoverLinks.forEach(t => {
+            ctx.strokeStyle = CONFIG.COLORS.link; ctx.lineWidth=4;
+            ctx.beginPath(); ctx.moveTo(state.mouse.x, state.mouse.y); ctx.lineTo(t.x, t.y); ctx.stroke();
+        });
+
+        ctx.save();
+        ctx.translate(state.mouse.x, state.mouse.y);
+        ctx.globalAlpha = 0.5;
+        
+        const dup = state.parts.find(p => p.type===state.tool && Math.abs(p.x-state.mouse.x)<2 && Math.abs(p.y-state.mouse.y)<2);
+        const col = dup ? CONFIG.COLORS.invalid : CONFIG.COLORS.valid;
+        
+        // Ghost is just a colored circle
+        ctx.fillStyle = col;
+        ctx.beginPath(); ctx.arc(0,0, PARTS[state.tool].radius, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
+    }
+
+    function drawParticles() {
+        ctx.strokeStyle = 'rgba(14, 165, 233, 0.4)'; ctx.beginPath();
+        particles.forEach(pt => {
+            ctx.moveTo(pt.x, pt.y); ctx.lineTo(pt.x+15, pt.y);
+            pt.x += pt.vx; pt.life -= 0.03;
+        });
+        particles = particles.filter(p => p.life > 0 && p.x < width);
+        ctx.stroke();
+        
+        state.parts.forEach(p => {
+            if(p.type === 'fan' && Math.abs(state.crankVel*p.ratio) > 0.05 && Math.random()>0.7) {
+                particles.push({
+                    x: p.x + state.view.x + 20,
+                    y: p.y + state.view.y + state.machineHeight + (Math.random()-0.5)*30,
+                    vx: Math.abs(state.crankVel*p.ratio)*20 + 2, life: 1
+                });
+            }
+        });
+    }
+    let particles = [];
+
+    // --- Input ---
+    function onResize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+    }
+    window.onresize = onResize;
+    onResize();
+
+    function updateMouse(e) {
+        const r = canvas.getBoundingClientRect();
+        // Handle both Mouse and Touch events
+        let cx, cy;
+        if (e.touches && e.touches.length > 0) {
+            cx = e.touches[0].clientX;
+            cy = e.touches[0].clientY;
+        } else {
+            cx = e.clientX;
+            cy = e.clientY;
+        }
+
+        state.mouse.rawX = cx - r.left;
+        state.mouse.rawY = cy - r.top;
+        
+        const machineYOffset = (state.screen === 'test') ? state.machineHeight : 0;
+        state.mouse.x = state.mouse.rawX - (state.screen==='test' ? state.view.x : 0);
+        state.mouse.y = state.mouse.rawY - (state.screen==='test' ? (state.view.y + machineYOffset) : 0);
+        
+        state.hoverLinks = [];
+        if(state.screen==='build' && state.tool!=='delete') {
+            const def = PARTS[state.tool];
+            state.parts.forEach(p => {
+                const d = Math.hypot(p.x - state.mouse.x, p.y - state.mouse.y);
+                if(Math.abs(d - (p.def.radius + def.radius)) < 15) state.hoverLinks.push(p);
+            });
+        }
+    }
+
+    // --- Unified Input Handlers ---
+    function handleInputMove(e) {
+        updateMouse(e);
+        if(state.interaction.active) {
+            const ang = Math.atan2(state.mouse.y - state.interaction.center.y, state.mouse.x - state.interaction.center.x);
+            let delta = ang - state.interaction.lastAngle;
+            if(delta > Math.PI) delta -= Math.PI*2;
+            if(delta < -Math.PI) delta += Math.PI*2;
+            state.crankVel = Math.max(Math.min(state.crankVel + delta, 0.8), -0.8);
+            state.interaction.lastAngle = ang;
+        }
+    }
+
+    function handleInputStart(e) {
+        updateMouse(e);
+        state.ripple = { x: state.mouse.rawX, y: state.mouse.rawY, r: 0, a: 1 };
+        
+        if(state.screen === 'build') {
+            if(state.tool === 'delete') {
+                for(let i=state.parts.length-1; i>=0; i--) {
+                    const p = state.parts[i];
+                    if(Math.hypot(p.x - state.mouse.x, p.y - state.mouse.y) < p.def.radius) {
+                        state.parts.splice(i,1);
+                        saveState();
+                        calcMachine();
+                        return;
+                    }
+                }
+            } else {
+                addPart(state.mouse.x, state.mouse.y, state.tool);
+            }
+        } else {
+            const c = state.parts.find(p => p.type === 'crank');
+            // Increased hit radius for mobile/touch
+            if(c && Math.hypot(state.mouse.x - c.x, state.mouse.y - c.y) < 80) {
+                state.interaction.active = true;
+                state.interaction.center = c;
+                state.interaction.lastAngle = Math.atan2(state.mouse.y - c.y, state.mouse.x - c.x);
+            }
+        }
+    }
+
+    function handleInputEnd() {
+        state.interaction.active = false;
+    }
+
+    // --- Event Listeners (Mouse & Touch) ---
+    canvas.addEventListener('mousemove', handleInputMove);
+    canvas.addEventListener('mousedown', handleInputStart);
+    canvas.addEventListener('mouseup', handleInputEnd);
+
+    // Touch Support
+    canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault(); // Prevent scrolling
+        handleInputMove(e);
+    }, { passive: false });
+
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        handleInputStart(e);
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        handleInputEnd();
+    });
+    
+    const slider = document.getElementById('machineHeightSlider');
+    slider.addEventListener('input', (e) => state.machineHeight = -parseInt(e.target.value));
+
+    // Start
+    addPart(width/2, height/2, 'crank');
+    loop();
+};
+</script>
+</body>
+</html>

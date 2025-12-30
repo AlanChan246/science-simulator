@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>10botics 科學手作模擬器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
+        
+        body { 
+            font-family: 'Noto Sans TC', sans-serif; 
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+
+        .bg-grid-pattern {
+            background-color: #f0f9ff;
+            background-image: 
+                linear-gradient(rgba(14, 165, 233, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(14, 165, 233, 0.1) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+
+        .game-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .game-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+    </style>
+</head>
+<body class="bg-grid-pattern min-h-screen">
+
+    <!-- Hero Section -->
+    <header class="py-16 px-4 text-center relative overflow-hidden">
+        <div class="max-w-4xl mx-auto relative z-10">
+            <h1 class="text-5xl md:text-6xl font-black text-sky-600 mb-6 drop-shadow-sm">
+                科學手作模擬器
+            </h1>
+            <p class="text-xl text-slate-600 mb-8">
+                探索科學原理，動手做，玩科學！選擇一個主題開始你的科學之旅。
+            </p>
+        </div>
+        
+        <!-- Decorative elements -->
+        <div class="absolute top-10 left-10 w-32 h-32 bg-yellow-200 rounded-full opacity-20 blur-3xl animate-float"></div>
+        <div class="absolute bottom-0 right-10 w-48 h-48 bg-sky-200 rounded-full opacity-30 blur-3xl animate-float" style="animation-delay: -3s;"></div>
+    </header>
+
+    <!-- Games Grid -->
+    <main class="max-w-6xl mx-auto px-6 pb-24">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            
+            <!-- 傳聲筒 -->
+            <a href="傳聲筒/html.html" class="game-card block bg-white rounded-3xl p-8 border border-slate-200">
+                <div class="w-16 h-16 bg-rose-100 rounded-2xl flex items-center justify-center text-3xl mb-6">
+                    📢
+                </div>
+                <h2 class="text-2xl font-bold text-slate-800 mb-3">傳聲筒</h2>
+                <p class="text-slate-500 leading-relaxed">
+                    探索聲音的傳播與振動，看看聲音是如何透過媒介傳遞的。
+                </p>
+                <div class="mt-6 flex items-center text-rose-500 font-bold">
+                    立即遊玩 <span class="ml-2">→</span>
+                </div>
+            </a>
+
+            <!-- 手搖風扇 -->
+            <a href="手搖風扇/fan.html" class="game-card block bg-white rounded-3xl p-8 border border-slate-200">
+                <div class="w-16 h-16 bg-sky-100 rounded-2xl flex items-center justify-center text-3xl mb-6">
+                    🌀
+                </div>
+                <h2 class="text-2xl font-bold text-slate-800 mb-3">手搖風扇</h2>
+                <p class="text-slate-500 leading-relaxed">
+                    了解齒輪傳動與能量轉換，動手轉動你的手搖風扇。
+                </p>
+                <div class="mt-6 flex items-center text-sky-500 font-bold">
+                    立即遊玩 <span class="ml-2">→</span>
+                </div>
+            </a>
+
+            <!-- 投籃器 -->
+            <a href="投籃器/html.html" class="game-card block bg-white rounded-3xl p-8 border border-slate-200">
+                <div class="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center text-3xl mb-6">
+                    🏀
+                </div>
+                <h2 class="text-2xl font-bold text-slate-800 mb-3">投籃器</h2>
+                <p class="text-slate-500 leading-relaxed">
+                    學習彈力與拋物線運動，挑戰你的精準投籃技巧。
+                </p>
+                <div class="mt-6 flex items-center text-orange-500 font-bold">
+                    立即遊玩 <span class="ml-2">→</span>
+                </div>
+            </a>
+
+            <!-- 星空儀 -->
+            <a href="星空儀/html.html" class="game-card block bg-white rounded-3xl p-8 border border-slate-200">
+                <div class="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center text-3xl mb-6">
+                    ✨
+                </div>
+                <h2 class="text-2xl font-bold text-slate-800 mb-3">星空儀</h2>
+                <p class="text-slate-500 leading-relaxed">
+                    探索光的反射與投影，在房間裡創造出屬於你的美麗星空。
+                </p>
+                <div class="mt-6 flex items-center text-indigo-500 font-bold">
+                    立即遊玩 <span class="ml-2">→</span>
+                </div>
+            </a>
+
+            <!-- 滑輪測力器 -->
+            <a href="滑輪測力器/html.html" class="game-card block bg-white rounded-3xl p-8 border border-slate-200">
+                <div class="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center text-3xl mb-6">
+                    ⚖️
+                </div>
+                <h2 class="text-2xl font-bold text-slate-800 mb-3">滑輪測力器</h2>
+                <p class="text-slate-500 leading-relaxed">
+                    了解滑輪組如何省力，親自測試不同組合的機械利益。
+                </p>
+                <div class="mt-6 flex items-center text-emerald-500 font-bold">
+                    立即遊玩 <span class="ml-2">→</span>
+                </div>
+            </a>
+
+            <!-- 衝鋒車 -->
+            <a href="衝鋒車/html.html" class="game-card block bg-white rounded-3xl p-8 border border-slate-200">
+                <div class="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center text-3xl mb-6">
+                    🏎️
+                </div>
+                <h2 class="text-2xl font-bold text-slate-800 mb-3">衝鋒車</h2>
+                <p class="text-slate-500 leading-relaxed">
+                    探討風力推進與空氣動力學，看你的衝鋒車能跑多快。
+                </p>
+                <div class="mt-6 flex items-center text-amber-500 font-bold">
+                    立即遊玩 <span class="ml-2">→</span>
+                </div>
+            </a>
+
+        </div>
+    </main>
+
+    <footer class="py-12 border-t border-slate-200 text-center text-slate-400">
+        <p>© 2025 10botics. All rights reserved.</p>
+    </footer>
+
+</body>
+</html>
+

@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>滑輪工程師挑戰</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
+        
+        body { 
+            font-family: 'Noto Sans TC', sans-serif; 
+            overflow: hidden; 
+            background-color: #f8fafc; 
+            touch-action: none; 
+            overscroll-behavior: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        canvas { display: block; outline: none; -webkit-tap-highlight-color: transparent; }
+
+        /* UI Styles */
+        .glass {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .tool-btn {
+            width: 64px; height: 64px; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            border-radius: 12px;
+            transition: all 0.2s;
+            color: #64748b;
+            cursor: pointer;
+            gap: 1px;
+            position: relative;
+        }
+        .tool-btn i { font-size: 1.2rem; margin-bottom: 2px; }
+        .tool-btn span { font-size: 10px; font-weight: bold; line-height: 1; }
+        .tool-cost { font-size: 9px; color: #94a3b8; font-weight: normal; margin-top: 2px; }
+        .tool-btn.active .tool-cost { color: #bfdbfe; }
+        
+        .tool-btn:hover { background: #f1f5f9; color: #334155; }
+        .tool-btn:active { transform: scale(0.95); }
+        .tool-btn.active { background: #3b82f6; color: white; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4); }
+        .tool-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        #tool-eraser.active { background: #ef4444; color: white; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4); }
+
+        .meter-container { height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; width: 120px; }
+        .meter-fill { height: 100%; background: linear-gradient(90deg, #22c55e, #eab308, #ef4444); width: 0%; transition: width 0.1s; }
+        
+        .highlight {
+            position: relative;
+            z-index: 50;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5);
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(0,0,0,0); } 100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); } }
+
+        /* Toast Notification */
+        #toast {
+            position: fixed; top: 100px; left: 50%; transform: translateX(-50%);
+            background: rgba(30, 41, 59, 0.9); color: white; 
+            padding: 10px 20px; border-radius: 30px;
+            font-size: 14px; font-weight: bold; pointer-events: none;
+            opacity: 0; transition: opacity 0.3s, transform 0.3s;
+            z-index: 100; white-space: nowrap;
+        }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        #toast.hide { transform: translateX(-50%) translateY(-10px); }
+
+        /* Tutorial Slide Styles */
+        .tut-slide { display: none; }
+        .tut-slide.active { display: block; animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Start Screen Background */
+        .bg-blueprint {
+            background-color: #f0f4f8;
+            background-image: 
+                linear-gradient(#e2e8f0 1px, transparent 1px),
+                linear-gradient(90deg, #e2e8f0 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+        
+        .floating-icon {
+            position: absolute;
+            color: rgba(59, 130, 246, 0.1);
+            animation: float 6s infinite ease-in-out;
+            pointer-events: none;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(10deg); }
+        }
+
+        /* --- Tutorial Animation Keyframes --- */
+        
+        /* Step 1: Place Pulley */
+        @keyframes handMovePlace {
+            0% { top: 80%; left: 20%; transform: scale(1); }
+            15% { top: 80%; left: 20%; transform: scale(0.9); } /* Click Tool */
+            30% { top: 80%; left: 20%; transform: scale(1); }
+            50% { top: 35%; left: 50%; transform: scale(1); } /* Move to Beam */
+            65% { top: 35%; left: 50%; transform: scale(0.9); } /* Click Beam */
+            80% { top: 35%; left: 50%; transform: scale(1); }
+            100% { top: 80%; left: 20%; transform: scale(1); }
+        }
+        @keyframes pulleyAppear {
+            0%, 65% { opacity: 0; transform: scale(0); }
+            70% { opacity: 1; transform: scale(1.2); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        /* Step 2: Rope Drag */
+        @keyframes handMoveRope {
+            0% { top: 80%; left: 80%; transform: scale(1); } /* Rope Tool */
+            10% { top: 80%; left: 80%; transform: scale(0.9); } /* Click Tool */
+            20% { top: 80%; left: 80%; transform: scale(1); }
+            35% { top: 35%; left: 30%; transform: scale(1); } /* Anchor (Start) */
+            45% { top: 35%; left: 30%; transform: scale(0.9); } /* Click Drag Start */
+            60% { top: 35%; left: 70%; transform: scale(0.9); } /* Drag thru Pulley */
+            80% { top: 75%; left: 50%; transform: scale(0.9); } /* Drag to Weight */
+            90% { top: 75%; left: 50%; transform: scale(1); } /* Release */
+            100% { top: 80%; left: 80%; transform: scale(1); }
+        }
+        @keyframes ropeAppear {
+            0%, 75% { opacity: 0; }
+            76%, 100% { opacity: 1; }
+        }
+        @keyframes weightLift {
+            0%, 75% { transform: translateY(0); }
+            85% { transform: translateY(-10px); }
+            95% { transform: translateY(0); }
+            100% { transform: translateY(0); }
+        }
+
+    </style>
+</head>
+<body class="h-full w-full relative">
+
+    <canvas id="world"></canvas>
+    
+    <!-- Toast Notification -->
+    <div id="toast">提示訊息</div>
+
+    <!-- Start Screen -->
+    <div id="start-screen" class="absolute inset-0 z-50 bg-blueprint flex items-center justify-center overflow-hidden">
+        <!-- Animated Background Icons -->
+        <i class="fas fa-cog floating-icon text-9xl top-20 left-10" style="animation-delay: 0s;"></i>
+        <i class="fas fa-weight-hanging floating-icon text-8xl bottom-20 right-20" style="animation-delay: 2s;"></i>
+        <i class="fas fa-tools floating-icon text-7xl top-40 right-40" style="animation-delay: 1s;"></i>
+        <i class="fas fa-hard-hat floating-icon text-8xl bottom-40 left-20" style="animation-delay: 3s;"></i>
+
+        <div class="bg-white/90 backdrop-blur-xl rounded-3xl p-10 max-w-md w-full shadow-2xl text-center border-2 border-blue-100 mx-4 relative z-10 transform transition-all hover:scale-[1.01]">
+            <div class="absolute -top-10 left-1/2 -translate-x-1/2 bg-blue-600 text-white w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg transform rotate-12">
+                <i class="fas fa-drafting-compass text-4xl"></i>
+            </div>
+            
+            <div class="mt-8 mb-6">
+                <h1 class="text-4xl font-black text-gray-800 tracking-tight">滑輪工程師</h1>
+                <p class="text-blue-500 font-bold uppercase tracking-widest text-xs mt-2">PHYSICS PUZZLE CHALLENGE</p>
+            </div>
+            
+            <p class="text-gray-500 mb-8 font-medium leading-relaxed">
+                利用物理原理，設計最省力的滑輪系統。<br>
+                <span class="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded">成本</span> 與 <span class="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded">時間</span> 將決定你的分數！
+            </p>
+            
+            <button onclick="startIntro()" class="group w-full py-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white rounded-2xl font-bold text-xl shadow-xl hover:shadow-blue-200 transition-all mb-8 flex items-center justify-center gap-3">
+                <span>開始挑戰</span>
+                <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+            </button>
+
+            <div class="bg-gray-50 rounded-2xl p-5 text-left border border-gray-100">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fas fa-trophy text-yellow-400"></i>
+                        排行榜 (前三名)
+                    </h3>
+                </div>
+                <div id="start-leaderboard" class="space-y-3 text-sm text-gray-600">
+                    <div class="text-center text-gray-400 italic text-xs py-2">尚無紀錄</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Intro Tutorial Modal -->
+    <div id="intro-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-6 md:p-8 max-w-lg w-full shadow-2xl relative overflow-hidden">
+            
+            <!-- Slide 1: Placement Animation -->
+            <div id="intro-slide-1" class="tut-slide active">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xl">1</div>
+                    <h2 class="text-2xl font-bold text-gray-800">放置滑輪</h2>
+                </div>
+                <p class="text-gray-600 mb-4 text-sm">點選滑輪工具，然後點擊橫樑（定滑輪）或重物（動滑輪）來安裝。</p>
+                
+                <div class="bg-slate-100 rounded-xl p-4 mb-4 relative h-48 overflow-hidden border border-slate-200">
+                    <!-- Scene -->
+                    <div class="absolute top-[35%] left-1/2 -translate-x-1/2 w-32 h-4 bg-gray-400 rounded"></div> <!-- Beam -->
+                    
+                    <!-- Animated Result: Pulley -->
+                    <div class="absolute top-[35%] left-1/2 -translate-x-1/2 mt-2 w-8 h-8 rounded-full border-4 border-gray-600 bg-white shadow-sm flex items-center justify-center"
+                         style="animation: pulleyAppear 4s infinite ease-out;">
+                        <div class="w-1 h-1 bg-black rounded-full"></div>
+                    </div>
+                    
+                    <!-- Tools -->
+                    <div class="absolute bottom-4 left-4 flex gap-2">
+                        <div class="w-10 h-10 bg-blue-100 rounded border border-blue-300 flex items-center justify-center text-blue-600"><i class="fas fa-compact-disc"></i></div>
+                    </div>
+
+                    <!-- Hand -->
+                    <div class="absolute z-10 text-3xl text-gray-800 drop-shadow-lg" style="animation: handMovePlace 4s infinite ease-in-out;">
+                        <i class="fas fa-hand-pointer"></i>
+                    </div>
+                </div>
+                
+                <button onclick="nextIntro(2)" class="mt-2 w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700">下一步：連接繩索</button>
+            </div>
+
+            <!-- Slide 2: Connection Animation -->
+            <div id="intro-slide-2" class="tut-slide">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center font-bold text-xl">2</div>
+                    <h2 class="text-2xl font-bold text-gray-800">連接繩索</h2>
+                </div>
+                <p class="text-gray-600 mb-4 text-sm">選擇繩索工具。從起點按住不放，拖曳經過滑輪，最後到終點放開。</p>
+
+                <div class="bg-slate-100 rounded-xl p-4 mb-4 relative h-48 overflow-hidden border border-slate-200">
+                    <!-- Scene Elements -->
+                    <div class="absolute top-[35%] left-[30%] w-4 h-4 bg-gray-600 rounded-full z-10"></div> <!-- Anchor -->
+                    <div class="absolute top-[35%] left-[70%] w-8 h-8 rounded-full border-2 border-gray-500 bg-white z-10"></div> <!-- Pulley -->
+                    <div class="absolute bottom-[20%] left-[50%] w-10 h-10 bg-red-500 rounded z-10" style="animation: weightLift 5s infinite;"></div> <!-- Weight -->
+
+                    <!-- Animated Result: Rope (Fixed SVG viewbox for correct rendering) -->
+                    <svg class="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none" style="animation: ropeAppear 5s infinite;">
+                        <!-- Coordinates match CSS % positions: Anchor(30,35) -> Pulley(70,35) -> Weight(50,80) -->
+                        <path d="M 30 35 L 70 35 L 50 80" stroke="#3b82f6" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+
+                    <!-- Tools -->
+                    <div class="absolute bottom-4 right-4 flex gap-2">
+                         <div class="w-10 h-10 bg-blue-100 rounded border border-blue-300 flex items-center justify-center text-blue-600"><i class="fas fa-wave-square"></i></div>
+                    </div>
+
+                    <!-- Hand -->
+                    <div class="absolute z-20 text-3xl text-gray-800 drop-shadow-lg" style="animation: handMoveRope 5s infinite ease-in-out;">
+                        <i class="fas fa-hand-pointer"></i>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="nextIntro(1)" class="py-3 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200">上一步</button>
+                    <button onclick="nextIntro(3)" class="py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700">下一步：基礎滑輪</button>
+                </div>
+            </div>
+
+            <!-- Slide 3: Simple Pulley System (Fixed vs Movable) -->
+            <div id="intro-slide-3" class="tut-slide">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center font-bold text-xl">3</div>
+                    <h2 class="text-2xl font-bold text-gray-800">滑輪類型</h2>
+                </div>
+                <p class="text-gray-600 mb-4 text-sm">認識兩種基本滑輪的使用方式：</p>
+
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <!-- Fixed Pulley -->
+                    <div class="bg-slate-50 p-2 rounded-lg border text-center">
+                        <div class="h-24 flex items-center justify-center mb-1">
+                             <svg width="80" height="80" viewBox="0 0 100 100">
+                                <line x1="50" y1="0" x2="50" y2="20" stroke="#94a3b8" stroke-width="3"/>
+                                <circle cx="50" cy="35" r="15" fill="#e2e8f0" stroke="#475569" stroke-width="2"/>
+                                <path d="M 35 35 L 35 80" stroke="#3b82f6" stroke-width="2"/> <!-- Rope Down -->
+                                <path d="M 65 35 L 65 80" stroke="#3b82f6" stroke-width="2"/> <!-- Rope Pull -->
+                                <rect x="25" y="80" width="20" height="20" fill="#ef4444"/> <!-- Weight -->
+                                <text x="50" y="15" font-size="8" fill="#94a3b8" text-anchor="middle">橫樑</text>
+                            </svg>
+                        </div>
+                        <h4 class="font-bold text-gray-700 text-sm">定滑輪</h4>
+                        <p class="text-xs text-gray-500 mt-1">改變施力方向<br><span class="text-red-500">不省力 (1:1)</span></p>
+                    </div>
+
+                    <!-- Movable Pulley -->
+                    <div class="bg-slate-50 p-2 rounded-lg border text-center">
+                        <div class="h-24 flex items-center justify-center mb-1">
+                            <svg width="80" height="80" viewBox="0 0 100 100">
+                                <line x1="20" y1="10" x2="80" y2="10" stroke="#94a3b8" stroke-width="2"/> <!-- Beam -->
+                                <path d="M 35 10 L 35 35" stroke="#3b82f6" stroke-width="2"/> <!-- Rope Anchor -->
+                                <circle cx="50" cy="35" r="15" fill="#e2e8f0" stroke="#475569" stroke-width="2"/>
+                                <path d="M 35 35 A 15 15 0 0 0 65 35" stroke="#3b82f6" stroke-width="2" fill="none"/> <!-- Rope Loop -->
+                                <path d="M 65 35 L 65 10" stroke="#3b82f6" stroke-width="2"/> <!-- Rope Up -->
+                                <rect x="40" y="60" width="20" height="20" fill="#ef4444"/> <!-- Weight -->
+                                <line x1="50" y1="50" x2="50" y2="60" stroke="#333" stroke-width="2"/>
+                            </svg>
+                        </div>
+                        <h4 class="font-bold text-gray-700 text-sm">動滑輪</h4>
+                        <p class="text-xs text-gray-500 mt-1">隨重物移動<br><span class="text-green-600 font-bold">省力 50% (2:1)</span></p>
+                    </div>
+                </div>
+
+                <div class="text-sm text-gray-500 bg-yellow-50 p-3 rounded-lg border border-yellow-100">
+                    <strong>提示：</strong> 將滑輪安裝在紅色重物上（動滑輪），可以幫你更輕鬆地舉起它！
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 mt-4">
+                    <button onclick="nextIntro(2)" class="py-3 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200">上一步</button>
+                    <button onclick="nextIntro(4)" class="py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700">下一步：進階滑輪組</button>
+                </div>
+            </div>
+
+            <!-- Slide 4: 3-Pulley Compound System -->
+            <div id="intro-slide-4" class="tut-slide">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-xl">4</div>
+                    <h2 class="text-2xl font-bold text-gray-800">滑輪組 (Compound System)</h2>
+                </div>
+                
+                <p class="text-gray-600 mb-4 text-sm">運用多個滑輪組成系統，可以大幅省力！下圖是一個 3 滑輪省力系統：</p>
+
+                <div class="bg-white rounded-xl p-2 mb-4 border border-purple-100 flex items-center justify-center shadow-sm h-48">
+                    <!-- 3-Pulley System Diagram (3:1 Advantage - W Shape) -->
+                    <svg width="250" height="180" viewBox="0 0 250 180">
+                        <!-- Beam -->
+                        <line x1="20" y1="20" x2="230" y2="20" stroke="#94a3b8" stroke-width="4"/>
+                        <text x="125" y="15" font-size="10" fill="#94a3b8" text-anchor="middle">橫樑 (Beam)</text>
+                        
+                        <!-- Pulleys -->
+                        <!-- Fixed 1 -->
+                        <circle cx="70" cy="50" r="15" fill="#e2e8f0" stroke="#475569" stroke-width="2"/>
+                        <line x1="70" y1="20" x2="70" y2="35" stroke="#475569" stroke-width="2"/>
+                        
+                        <!-- Fixed 2 -->
+                        <circle cx="180" cy="50" r="15" fill="#e2e8f0" stroke="#475569" stroke-width="2"/>
+                        <line x1="180" y1="20" x2="180" y2="35" stroke="#475569" stroke-width="2"/>
+
+                        <!-- Movable -->
+                        <circle cx="125" cy="120" r="15" fill="#e2e8f0" stroke="#475569" stroke-width="2"/>
+                        
+                        <!-- Rope Path (W Shape - 3:1) -->
+                        <!-- 1. Start at Movable Axle -->
+                        <circle cx="125" cy="120" r="3" fill="#3b82f6"/>
+                        
+                        <!-- 2. Up to Fixed 1 (Left) -->
+                        <path d="M 125 120 L 70 50" stroke="#3b82f6" stroke-width="3" stroke-linecap="round"/>
+                        
+                        <!-- 3. Over Fixed 1 (Arc) -->
+                        <path d="M 70 50 L 55 50 A 15 15 0 0 1 85 50" stroke="#3b82f6" stroke-width="3" fill="none" stroke-opacity="0"/> <!-- Helper -->
+                        
+                        <!-- Strand 1: Movable Axle -> Fixed Left -->
+                        <line x1="125" y1="120" x2="85" y2="50" stroke="#3b82f6" stroke-width="3"/>
+                        
+                        <!-- Strand 2: Fixed Left -> Movable -->
+                        <line x1="55" y1="50" x2="110" y2="120" stroke="#3b82f6" stroke-width="3"/>
+                        
+                        <!-- Strand 3: Movable -> Fixed Right -->
+                        <line x1="140" y1="120" x2="165" y2="50" stroke="#3b82f6" stroke-width="3"/>
+                        
+                        <!-- Strand 4: Pull -->
+                        <line x1="195" y1="50" x2="210" y2="140" stroke="#ef4444" stroke-width="3" stroke-dasharray="5,5"/>
+
+                        <!-- Redraw Pulleys to overlay lines nicely -->
+                        <circle cx="70" cy="50" r="15" fill="#f1f5f9" stroke="#475569" stroke-width="2"/>
+                        <circle cx="180" cy="50" r="15" fill="#f1f5f9" stroke="#475569" stroke-width="2"/>
+                        <circle cx="125" cy="120" r="15" fill="#f1f5f9" stroke="#475569" stroke-width="2"/>
+
+                        <!-- Weight -->
+                        <rect x="115" y="145" width="20" height="20" fill="#ef4444"/>
+                        <line x1="125" y1="135" x2="125" y2="145" stroke="#333" stroke-width="2"/>
+                        
+                        <!-- Strand Counter Circles -->
+                        <circle cx="105" cy="90" r="8" fill="#fff" stroke="#3b82f6"/>
+                        <text x="105" y="93" font-size="10" fill="#3b82f6" text-anchor="middle" font-weight="bold">1</text>
+                        
+                        <circle cx="85" cy="90" r="8" fill="#fff" stroke="#3b82f6"/>
+                        <text x="85" y="93" font-size="10" fill="#3b82f6" text-anchor="middle" font-weight="bold">2</text>
+                        
+                        <circle cx="150" cy="90" r="8" fill="#fff" stroke="#3b82f6"/>
+                        <text x="150" y="93" font-size="10" fill="#3b82f6" text-anchor="middle" font-weight="bold">3</text>
+
+                        <!-- Labels -->
+                        <text x="210" y="155" font-size="10" fill="#ef4444" text-anchor="middle">拉力 (1/3)</text>
+                    </svg>
+                </div>
+
+                <div class="bg-purple-50 p-3 rounded-lg border border-purple-100 text-sm">
+                    <p class="mb-1"><strong><i class="fas fa-lightbulb text-yellow-500 mr-1"></i>3:1 省力原理：</strong></p>
+                    <p class="text-gray-600">數數看，有 <strong>3條繩索</strong> 直接向上支撐著動滑輪和重物。繩索數越多越省力！</p>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-2 mt-4">
+                    <button onclick="nextIntro(3)" class="py-3 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200">上一步</button>
+                    <button onclick="nextIntro(5)" class="py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700">下一步：計分規則</button>
+                </div>
+            </div>
+
+            <!-- Slide 5: Game Rules & Scoring -->
+            <div id="intro-slide-5" class="tut-slide">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold text-xl">5</div>
+                    <h2 class="text-2xl font-bold text-gray-800">計分規則</h2>
+                </div>
+                
+                <p class="text-gray-600 mb-6 text-sm">你的最終成績由 <strong>總成本</strong> 與 <strong>總時間</strong> 決定。精打細算是工程師的職責！</p>
+
+                <div class="space-y-4 mb-6">
+                    <div class="bg-white border rounded-xl p-3 flex justify-between items-center shadow-sm">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-gray-100 rounded flex items-center justify-center"><i class="fas fa-compact-disc text-gray-600"></i></div>
+                            <div>
+                                <div class="font-bold text-gray-700">滑輪</div>
+                                <div class="text-xs text-gray-400">核心組件</div>
+                            </div>
+                        </div>
+                        <div class="font-mono font-bold text-red-500 text-lg">$200 <span class="text-xs text-gray-400">/個</span></div>
+                    </div>
+
+                    <div class="bg-white border rounded-xl p-3 flex justify-between items-center shadow-sm">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-gray-100 rounded flex items-center justify-center"><i class="fas fa-grip-lines text-gray-600"></i></div>
+                            <div>
+                                <div class="font-bold text-gray-700">橫樑 (錨點)</div>
+                                <div class="text-xs text-gray-400">固定支撐</div>
+                            </div>
+                        </div>
+                        <div class="font-mono font-bold text-red-500 text-lg">$100 <span class="text-xs text-gray-400">/個</span></div>
+                    </div>
+
+                    <div class="bg-white border rounded-xl p-3 flex justify-between items-center shadow-sm">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-gray-100 rounded flex items-center justify-center"><i class="fas fa-wave-square text-gray-600"></i></div>
+                            <div>
+                                <div class="font-bold text-gray-700">繩索</div>
+                                <div class="text-xs text-gray-400">依長度計算</div>
+                            </div>
+                        </div>
+                        <div class="font-mono font-bold text-red-500 text-lg">$10 <span class="text-xs text-gray-400">/m</span></div>
+                    </div>
+                </div>
+
+                <div class="bg-blue-50 p-3 rounded-lg border border-blue-100 text-sm mb-4">
+                    <strong>勝利條件：</strong> 在不超出預算的情況下，以最快的速度完成 3 個關卡。
+                </div>
+                
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="nextIntro(4)" class="py-3 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200">上一步</button>
+                    <button onclick="startGame()" class="py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 shadow-lg shadow-green-200">開始挑戰</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- HUD -->
+    <div id="game-ui" class="hidden">
+        <div class="absolute top-4 left-4 right-4 flex justify-between items-start pointer-events-none">
+            <!-- Stats (Left) -->
+            <div class="glass px-4 py-3 rounded-xl flex items-center gap-4 md:gap-6 pointer-events-auto shadow-sm">
+                <div class="flex flex-col items-start">
+                    <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">關卡</span>
+                    <span id="level-indicator" class="font-black text-blue-600 text-lg">1 / 3</span>
+                </div>
+                <div class="h-8 w-px bg-gray-200 hidden md:block"></div>
+                <div class="flex flex-col hidden md:flex">
+                    <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">目標重量</span>
+                    <span id="target-weight" class="font-bold text-gray-800">120kg</span>
+                </div>
+                <div class="h-8 w-px bg-gray-200"></div>
+                <div class="flex flex-col">
+                    <div class="flex justify-between w-full mb-1">
+                        <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">你的拉力</span>
+                        <span id="force-text" class="text-[10px] font-bold text-gray-500">0N</span>
+                    </div>
+                    <div class="meter-container w-24 md:w-32">
+                        <div id="force-bar" class="meter-fill"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats (Right) - Cost & Time -->
+            <div class="glass px-4 py-3 rounded-xl flex flex-col items-end pointer-events-auto shadow-sm ml-auto">
+                <div class="flex gap-4 mb-2">
+                    <div class="flex flex-col items-end">
+                        <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">累積成本</span>
+                        <span id="cost-display" class="font-mono text-lg font-bold text-green-600">$0</span>
+                    </div>
+                    <div class="h-8 w-px bg-gray-200"></div>
+                    <div class="flex flex-col items-end">
+                        <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">累積時間</span>
+                        <span id="timer-display" class="font-mono text-lg font-bold text-blue-600">0.0s</span>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="goToStart()" class="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 text-red-500 hover:bg-red-100 hover:shadow-md transition-all text-sm" title="離開">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                    <button onclick="startIntroFromGame()" class="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 text-sm" title="教學">
+                        <i class="fas fa-book-open"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Hint Bubble -->
+        <div id="idle-hint" class="absolute top-20 left-1/2 -translate-x-1/2 bg-yellow-100 text-yellow-800 px-4 py-2 rounded-full shadow-lg text-sm font-bold hidden pointer-events-none transform transition-all duration-500 opacity-0 translate-y-4 z-40">
+            <i class="fas fa-lightbulb mr-2"></i><span id="hint-text">試試看放置一個滑輪？</span>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 md:gap-4 pointer-events-auto z-40 w-full justify-center px-4">
+            <div class="glass p-2 rounded-2xl flex gap-1 md:gap-2 items-center overflow-x-auto">
+                <button id="tool-select" onclick="setTool('select')" class="tool-btn active">
+                    <i class="fas fa-hand-paper"></i>
+                    <span>選取</span>
+                    <span class="tool-cost">-</span>
+                </button>
+                <div class="w-px h-8 bg-gray-200 my-auto"></div>
+                <button id="tool-anchor" onclick="setTool('anchor')" class="tool-btn">
+                    <i class="fas fa-grip-lines"></i>
+                    <span>橫樑</span>
+                    <span class="tool-cost">$100</span>
+                </button>
+                <button id="tool-pulley" onclick="setTool('pulley')" class="tool-btn">
+                    <i class="fas fa-compact-disc"></i>
+                    <span>滑輪</span>
+                    <span class="tool-cost">$200</span>
+                </button>
+                <button id="tool-rope" onclick="setTool('rope')" class="tool-btn">
+                    <i class="fas fa-wave-square"></i>
+                    <span>繩索</span>
+                    <span class="tool-cost">$10/m</span>
+                </button>
+                <div class="w-px h-8 bg-gray-200 my-auto"></div>
+                <button id="tool-eraser" onclick="setTool('eraser')" class="tool-btn hover:text-red-500">
+                    <i class="fas fa-eraser"></i>
+                    <span>移除</span>
+                    <span class="tool-cost"></span>
+                </button>
+            </div>
+            
+            <div class="glass p-2 rounded-2xl flex gap-1 md:gap-2 items-center">
+                <button onclick="undo()" class="tool-btn w-12 !h-auto py-2" title="復原">
+                    <i class="fas fa-undo"></i>
+                    <span>復原</span>
+                </button>
+                <button onclick="resetLevel()" class="tool-btn w-12 !h-auto py-2 hover:text-red-500" title="重來">
+                    <i class="fas fa-redo"></i>
+                    <span>重來</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="level-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl scale-100">
+            <div class="text-6xl mb-4">✨</div>
+            <h2 class="text-2xl font-bold text-gray-800">關卡完成！</h2>
+            <p class="text-gray-500 mb-6" id="level-subtitle">做得好！</p>
+            
+            <div class="grid grid-cols-2 gap-3 mb-6 text-left">
+                <div class="bg-blue-50 p-3 rounded-xl">
+                    <div class="text-[10px] text-blue-400 uppercase font-bold">累積時間</div>
+                    <div id="lvl-time" class="text-xl font-mono font-bold text-blue-700">0s</div>
+                </div>
+                <div class="bg-green-50 p-3 rounded-xl">
+                    <div class="text-[10px] text-green-600 uppercase font-bold">累積成本</div>
+                    <div id="lvl-cost" class="text-xl font-mono font-bold text-green-700">$0</div>
+                </div>
+            </div>
+
+            <button onclick="nextLevel()" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg">下一關</button>
+        </div>
+    </div>
+
+    <div id="victory-modal" class="fixed inset-0 bg-black/60 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-8 max-w-md w-full text-center shadow-2xl border-4 border-yellow-100">
+            <div class="text-6xl mb-2">🏆</div>
+            <h2 class="text-3xl font-black text-gray-800 mb-2">恭喜通關</h2>
+            <div class="flex justify-center gap-4 mb-6 bg-gray-50 p-4 rounded-xl">
+                <div><div class="text-xs text-gray-400 font-bold">總分</div><div id="final-score" class="text-2xl font-black text-green-600">0</div></div>
+                <div><div class="text-xs text-gray-400 font-bold">總時間</div><div id="total-time" class="text-lg font-bold text-gray-700">0s</div></div>
+                <div><div class="text-xs text-gray-400 font-bold">總成本</div><div id="total-cost" class="text-lg font-bold text-green-600">$0</div></div>
+            </div>
+            <button onclick="goToStart()" class="w-full py-3 bg-gray-900 hover:bg-black text-white rounded-xl font-bold shadow-xl">回到主選單</button>
+        </div>
+    </div>
+
+<script>
+/**
+ * Pulley Engineer - Robust Physics Engine
+ */
+
+const canvas = document.getElementById('world');
+const ctx = canvas.getContext('2d');
+
+let width, height;
+function resize() {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// Prevent context menu on right click for better game control
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+// --- Configuration ---
+const CONFIG = {
+    gravity: 0.5,
+    friction: 0.99,
+    groundFriction: 0.5, 
+    subSteps: 10,
+    ropeStiffness: 12,
+    ropeSegmentLength: 5, 
+    pulleyRadius: 24,
+    ropeColor: '#3b82f6',
+    ropeWidth: 3,
+    playerMaxForce: 250, 
+    floorHeight: 120, 
+    targetHeight: 200
+};
+
+const COSTS = {
+    anchor: 100,
+    pulley: 200,
+    ropePerM: 10
+};
+
+// --- Game State ---
+let level = 1;
+let levelTime = 0;
+let winTimer = 0;
+let isPlaying = false; 
+let currentTool = 'select';
+let toolState = { drawing: false, pts: [], startEnt: null };
+let mouse = { x: 0, y: 0, down: false, drag: null };
+let forceApplied = 0;
+let undoStack = [];
+let campaignStats = { totalTime: 0, totalCost: 0 };
+let currentCost = 0;
+let lastInteractionTime = Date.now();
+let hintTimer = null;
+
+// --- Entities ---
+let points = [];
+let constraints = [];
+let pulleys = [];
+let weights = [];
+let anchors = [];
+
+// --- Classes ---
+class Point {
+    constructor(x, y, pinned=false, mass=0.2) { 
+        this.x = x; this.y = y; this.oldx = x; this.oldy = y;
+        this.pinned = pinned; this.mass = mass; this.isHandle = false;
+        this.isRopeNode = false; 
+        this.id = Math.random().toString(36).substr(2, 9);
+    }
+    update(dt) {
+        if(this.pinned) return;
+        let vx = (this.x - this.oldx) * CONFIG.friction;
+        let vy = (this.y - this.oldy) * CONFIG.friction;
+        this.oldx = this.x; this.oldy = this.y;
+        this.x += vx; this.y += vy; 
+        this.y += CONFIG.gravity * dt; 
+        
+        let floorY = height - CONFIG.floorHeight;
+        if(this.y > floorY) {
+            this.y = floorY;
+            this.oldx = this.x + (this.oldx - this.x) * CONFIG.groundFriction;
+        }
+    }
+}
+
+class Constraint {
+    constructor(p1, p2, len) {
+        this.p1 = p1; this.p2 = p2;
+        this.len = len || Math.hypot(p1.x-p2.x, p1.y-p2.y);
+    }
+    resolve() {
+        const dx = this.p2.x - this.p1.x;
+        const dy = this.p2.y - this.p1.y;
+        const dist = Math.hypot(dx, dy);
+        if(dist < 0.01) return;
+        const diff = (this.len - dist) / dist;
+        const m1 = this.p1.pinned ? 0 : 1/this.p1.mass;
+        const m2 = this.p2.pinned ? 0 : 1/this.p2.mass;
+        const total = m1 + m2;
+        if(total === 0) return;
+        const scalar = diff / total;
+        if(!this.p1.pinned) { this.p1.x -= dx*scalar*m1; this.p1.y -= dy*scalar*m1; }
+        if(!this.p2.pinned) { this.p2.x += dx*scalar*m2; this.p2.y += dy*scalar*m2; }
+    }
+}
+
+class Anchor {
+    constructor(x, y) { this.x = x; this.y = y; this.w = 60; this.h = 16; }
+    draw() {
+        ctx.fillStyle = '#64748b'; ctx.fillRect(this.x-this.w/2, this.y-this.h/2, this.w, this.h);
+        ctx.fillStyle = '#94a3b8'; ctx.beginPath(); ctx.arc(this.x-20, this.y, 3, 0, Math.PI*2); ctx.arc(this.x+20, this.y, 3, 0, Math.PI*2); ctx.fill();
+    }
+    contains(mx, my) { return Math.abs(mx-this.x)<this.w/2 && Math.abs(my-this.y)<this.h/2; }
+}
+
+class Weight {
+    constructor(x, y, kg) {
+        this.point = new Point(x, y, false, kg * 0.5); 
+        points.push(this.point);
+        this.kg = kg; this.w = 40 + (kg>40?10:0);
+    }
+    draw() {
+        const {x, y} = this.point;
+        ctx.save(); ctx.translate(x, y);
+        ctx.fillStyle = this.kg > 200 ? '#b91c1c' : '#334155';
+        ctx.fillRect(-this.w/2, -this.w/2, this.w, this.w);
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth=2; ctx.strokeRect(-this.w/2, -this.w/2, this.w, this.w);
+        ctx.fillStyle = 'white'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(this.kg + 'kg', 0, 0); 
+        ctx.restore();
+    }
+    contains(mx, my) { return Math.abs(mx-this.point.x)<this.w/2 && Math.abs(my-this.point.y)<this.w/2; }
+}
+
+class Pulley {
+    constructor(x, y) {
+        this.point = new Point(x, y, true, 2); points.push(this.point);
+        this.r = CONFIG.pulleyRadius; this.rot = 0; this.attachedTo = null;
+    }
+    update() {
+        if(this.attachedTo) {
+            this.point.x = this.attachedTo.x;
+            this.point.y = this.attachedTo.y - 45;
+            this.point.pinned = this.attachedTo.pinned; 
+            if(!this.attachedTo.pinned) {
+                this.point.pinned = true; 
+            }
+        }
+    }
+    draw() {
+        const {x, y} = this.point;
+        if(this.attachedTo) {
+            ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(this.attachedTo.x, this.attachedTo.y);
+            ctx.strokeStyle = '#475569'; ctx.lineWidth=4; ctx.stroke();
+        }
+        ctx.beginPath(); ctx.arc(x, y, this.r, 0, Math.PI*2);
+        ctx.fillStyle = '#f1f5f9'; ctx.fill(); ctx.stroke();
+        ctx.save(); ctx.translate(x, y); ctx.rotate(this.rot);
+        for(let i=0; i<3; i++) { ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(this.r, 0); ctx.stroke(); ctx.rotate(Math.PI*2/3); }
+        ctx.restore();
+    }
+    contains(mx, my) { return Math.hypot(mx-this.point.x, my-this.point.y) < this.r; }
+}
+
+// --- Logic ---
+
+function calculateCost() {
+    let cost = 0;
+    // Pulleys
+    cost += pulleys.length * COSTS.pulley;
+    // Anchors (Subtract 1 for the pre-placed beam)
+    cost += Math.max(0, anchors.length - 1) * COSTS.anchor;
+    
+    // Rope Cost Calculation
+    let totalRopeLen = 0;
+    constraints.forEach(c => {
+        totalRopeLen += c.len;
+    });
+    
+    // Scale: 100px = 1m approx? Let's say total pixels / 50 * $10
+    cost += Math.floor(totalRopeLen / 50) * COSTS.ropePerM;
+    
+    currentCost = cost;
+    
+    // Cumulative cost display (Previous Levels Total + Current Level)
+    const totalDisplayCost = campaignStats.totalCost + currentCost;
+    document.getElementById('cost-display').innerText = '$' + totalDisplayCost;
+}
+
+function resolve() {
+    for(let i=0; i<CONFIG.ropeStiffness; i++) {
+        constraints.forEach(c => c.resolve());
+        points.forEach(p => {
+            if(p.pinned && !p.isHandle) return; 
+            pulleys.forEach(pul => {
+                const dx = p.x - pul.point.x;
+                const dy = p.y - pul.point.y;
+                const dist = Math.hypot(dx, dy);
+                const min = pul.r + CONFIG.ropeWidth + 2; 
+                if(dist < min) {
+                    const pen = min - dist;
+                    const nx = dx/dist; const ny = dy/dist;
+                    if(!p.pinned) {
+                        p.x += nx * pen; p.y += ny * pen;
+                    }
+                    const cross = (p.x - pul.point.x)*(p.y - p.oldy) - (p.y - pul.point.y)*(p.x - p.oldx);
+                    pul.rot += (cross > 0 ? 1 : -1) * 0.01; 
+                }
+            });
+        });
+    }
+}
+
+function update() {
+    const timerEl = document.getElementById('timer-display');
+    if(timerEl && document.getElementById('game-ui').classList.contains('hidden') === false) {
+        levelTime += 1/60;
+        // Cumulative Time: Previous Levels + Current Level Time
+        const cumulativeTime = campaignStats.totalTime + levelTime;
+        timerEl.innerText = cumulativeTime.toFixed(1) + 's';
+    }
+
+    if(!mouse.down) {
+        forceApplied = 0;
+    }
+
+    if(!isPlaying && Date.now() - lastInteractionTime > 20000) {
+        showIdleHint();
+    } else {
+        hideIdleHint();
+    }
+
+    if(!isPlaying) return;
+    
+    const subDt = 1 / CONFIG.subSteps;
+    
+    for(let s=0; s<CONFIG.subSteps; s++) {
+        points.forEach(p => p.update(subDt));
+        resolve();
+        pulleys.forEach(p => p.update());
+        
+        if(mouse.down && mouse.drag instanceof Point && mouse.drag.isHandle) {
+            applyInputForce(subDt);
+        }
+    }
+
+    const targetY = height - CONFIG.targetHeight;
+    const allLifted = weights.length > 0 && weights.every(w => w.point.y < targetY);
+    if(allLifted) {
+        winTimer++;
+        if(winTimer > 100) doLevelComplete(); 
+    } else {
+        winTimer = 0;
+    }
+}
+
+function applyInputForce(dt) {
+    if(!mouse.drag) return;
+    const p = mouse.drag;
+    const dx = mouse.x - p.x;
+    const dy = mouse.y - p.y;
+    const dist = Math.hypot(dx, dy);
+    let force = dist * 2; 
+    if(force > CONFIG.playerMaxForce) force = CONFIG.playerMaxForce;
+    forceApplied = force;
+    
+    if(dist > 0) {
+        p.x += (dx/dist) * force * 0.3 * dt; 
+        p.y += (dy/dist) * force * 0.3 * dt;
+    }
+}
+
+// --- Events ---
+
+function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.innerText = msg;
+    toast.classList.remove('hide');
+    toast.classList.add('show');
+    clearTimeout(toast.timer);
+    toast.timer = setTimeout(() => {
+        toast.classList.remove('show');
+        toast.classList.add('hide');
+    }, 2500);
+}
+
+function showIdleHint() {
+    const h = document.getElementById('idle-hint');
+    const txt = document.getElementById('hint-text');
+    h.classList.remove('hidden', 'opacity-0', 'translate-y-4');
+    
+    if(pulleys.length === 0) txt.innerText = "試試看：將滑輪放置在橫樑或重物上。";
+    else if(constraints.length === 0) txt.innerText = "提示：使用繩索工具連接系統。";
+    else if(!isPlaying) txt.innerText = "準備好了嗎？按下 GO 開始模擬！";
+}
+
+function hideIdleHint() {
+    const h = document.getElementById('idle-hint');
+    h.classList.add('opacity-0', 'translate-y-4');
+    setTimeout(() => h.classList.add('hidden'), 500);
+}
+
+function updateInteraction() {
+    lastInteractionTime = Date.now();
+    hideIdleHint();
+}
+
+function getHover(mx, my) {
+    for(let p of points) if(p.isHandle && Math.hypot(p.x-mx, p.y-my)<30) return p;
+    for(let p of pulleys) if(p.contains(mx, my)) return p;
+    for(let w of weights) if(w.contains(mx, my)) return w;
+    for(let a of anchors) if(a.contains(mx, my)) return a;
+    return null;
+}
+
+function distToSegment(p, v, w) {
+    const l2 = (w.x - v.x)**2 + (w.y - v.y)**2;
+    if (l2 == 0) return Math.hypot(p.x - v.x, p.y - v.y);
+    let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+    t = Math.max(0, Math.min(1, t));
+    return Math.hypot(p.x - (v.x + t * (w.x - v.x)), p.y - (v.y + t * (w.y - v.y)));
+}
+
+function saveState() {
+    if(undoStack.length > 20) undoStack.shift();
+    const s = {
+        pts: points.map(p => ({x:p.x, y:p.y, pinned:p.pinned, mass:p.mass, handle:p.isHandle, id:p.id, isRopeNode:p.isRopeNode})),
+        anchors: anchors.map(a => ({x:a.x, y:a.y})),
+        weights: weights.map(w => ({x:w.point.x, y:w.point.y, kg:w.kg, pid:w.point.id})),
+        pulleys: pulleys.map(p => ({pid:p.point.id, atPid: p.attachedTo?.id})),
+        cons: constraints.map(c => ({p1:c.p1.id, p2:c.p2.id, len:c.len}))
+    };
+    undoStack.push(JSON.stringify(s));
+    calculateCost();
+}
+
+function undo() {
+    if(!undoStack.length) return;
+    const s = JSON.parse(undoStack.pop());
+    points = []; anchors = []; weights = []; pulleys = []; constraints = [];
+    
+    s.pts.forEach(d => {
+        let p = new Point(d.x, d.y, d.pinned, d.mass);
+        p.isHandle = d.handle; p.id = d.id; p.isRopeNode = d.isRopeNode;
+        points.push(p);
+    });
+    s.anchors.forEach(d => anchors.push(new Anchor(d.x, d.y)));
+    s.weights.forEach(d => {
+        let w = new Weight(d.x, d.y, d.kg);
+        points.pop(); 
+        w.point = points.find(p=>p.id===d.pid);
+        weights.push(w);
+    });
+    s.pulleys.forEach(d => {
+        let pul = new Pulley(0,0);
+        points.pop();
+        pul.point = points.find(p=>p.id===d.pid);
+        if(d.atPid) {
+            pul.attachedTo = points.find(p=>p.id===d.atPid);
+        }
+        pulleys.push(pul);
+    });
+    s.cons.forEach(d => {
+        let p1 = points.find(p=>p.id===d.p1);
+        let p2 = points.find(p=>p.id===d.p2);
+        if(p1 && p2) constraints.push(new Constraint(p1, p2, d.len));
+    });
+    calculateCost();
+}
+
+// --- Unified Input Handling ---
+
+function handleStart(x, y) {
+    updateInteraction();
+    mouse.x = x; mouse.y = y; mouse.down = true;
+    const ent = getHover(mouse.x, mouse.y);
+    
+    if(currentTool === 'select') {
+        if(ent) {
+            mouse.drag = ent;
+            if(ent instanceof Point && ent.isHandle) ent.pinned = false;
+        }
+    } else if(currentTool === 'rope') {
+        let sx = mouse.x, sy = mouse.y;
+        if(ent instanceof Anchor) sy = ent.y + 10;
+        if(ent instanceof Weight) sy = ent.point.y - 20;
+        toolState.drawing = true;
+        toolState.startEnt = ent; 
+        toolState.pts = [{x: sx, y: sy}]; 
+    } else if(currentTool === 'pulley') {
+        if(ent instanceof Anchor) {
+            saveState();
+            let p = new Pulley(mouse.x, mouse.y);
+            p.point.x = ent.x; p.point.y = ent.y+35; p.point.pinned = true;
+            pulleys.push(p);
+            calculateCost();
+        } else if (ent instanceof Weight) {
+            saveState();
+            let p = new Pulley(mouse.x, mouse.y); 
+            p.attachedTo = ent.point; 
+            p.point.x = ent.point.x;
+            p.point.y = ent.point.y - 45;
+            p.point.oldx = p.point.x;
+            p.point.oldy = p.point.y;
+            p.point.pinned = true; 
+            pulleys.push(p);
+            calculateCost();
+        } else {
+            showToast("滑輪需安裝在橫樑或重物上！");
+        }
+    } else if(currentTool === 'anchor') {
+        saveState(); anchors.push(new Anchor(mouse.x, mouse.y));
+        calculateCost();
+    } else if(currentTool === 'eraser') {
+        if(ent) {
+            if(ent instanceof Pulley) {
+                saveState();
+                pulleys = pulleys.filter(p => p !== ent);
+                const idx = points.indexOf(ent.point);
+                if(idx > -1) points.splice(idx, 1);
+            } else if(ent instanceof Anchor) {
+                saveState();
+                anchors = anchors.filter(a => a !== ent);
+            }
+            calculateCost();
+        } else {
+            const clickPt = {x: mouse.x, y: mouse.y};
+            const ropeHit = constraints.find(c => distToSegment(clickPt, c.p1, c.p2) < 20); 
+            
+            if (ropeHit) {
+                saveState();
+                let toRemove = new Set([ropeHit]);
+                let queue = [ropeHit];
+                
+                while(queue.length > 0) {
+                    const c = queue.pop();
+                    if (c.p1.isRopeNode) {
+                        const adj = constraints.filter(oc => !toRemove.has(oc) && (oc.p1 === c.p1 || oc.p2 === c.p1));
+                        adj.forEach(oc => { toRemove.add(oc); queue.push(oc); });
+                    }
+                    if (c.p2.isRopeNode) {
+                        const adj = constraints.filter(oc => !toRemove.has(oc) && (oc.p1 === c.p2 || oc.p2 === c.p2));
+                        adj.forEach(oc => { toRemove.add(oc); queue.push(oc); });
+                    }
+                }
+                constraints = constraints.filter(c => !toRemove.has(c));
+                const usedPointIds = new Set();
+                constraints.forEach(c => { usedPointIds.add(c.p1.id); usedPointIds.add(c.p2.id); });
+                points = points.filter(p => !p.isRopeNode || usedPointIds.has(p.id));
+                calculateCost();
+            }
+        }
+    }
+}
+
+function handleMove(x, y) {
+    updateInteraction();
+    mouse.x = x; mouse.y = y;
+    if(currentTool === 'select' && mouse.down && mouse.drag instanceof Weight && !isPlaying) {
+        mouse.drag.point.x = mouse.x; mouse.drag.point.y = mouse.y;
+        mouse.drag.point.oldx = mouse.x; mouse.drag.point.oldy = mouse.y;
+    }
+    if(currentTool === 'rope' && toolState.drawing) {
+        toolState.pts.push({x: mouse.x, y: mouse.y});
+    }
+}
+
+function handleEnd() {
+    updateInteraction();
+    mouse.down = false;
+    if(mouse.drag instanceof Point && mouse.drag.isHandle) mouse.drag.pinned = true;
+    if(mouse.drag instanceof Weight && !isPlaying) mouse.drag.point.pinned = false;
+    mouse.drag = null;
+
+    if(currentTool === 'rope' && toolState.drawing) {
+        saveState();
+        if(toolState.pts.length > 0) {
+            let startEnt = toolState.startEnt; 
+            
+            if (!startEnt && toolState.pts.length > 0) {
+                const startPt = toolState.pts[0];
+                for(let w of weights) {
+                     if (w.contains(startPt.x, startPt.y) || Math.hypot(w.point.x - startPt.x, w.point.y - startPt.y) < 60) {
+                         startEnt = w;
+                         break;
+                     }
+                }
+                if (!startEnt) {
+                     for(let a of anchors) {
+                         if (a.contains(startPt.x, startPt.y) || Math.hypot(a.x - startPt.x, a.y - startPt.y) < 50) {
+                             startEnt = a;
+                             break;
+                         }
+                     }
+                }
+            }
+            
+            if (toolState.pts.length > 1 || (toolState.pts.length === 1 && startEnt)) {
+                 
+                let firstPt = null;
+                let prev = null;
+
+                if (toolState.pts.length === 1) {
+                    toolState.pts.push({x: toolState.pts[0].x, y: toolState.pts[0].y + 10});
+                }
+
+                const segLen = CONFIG.ropeSegmentLength;
+                let currentDist = 0;
+                let requiredDist = 0;
+                
+                let p0 = toolState.pts[0];
+                let startNode = new Point(p0.x, p0.y, false, 0.5);
+                
+                if(startEnt instanceof Anchor) { startNode.x = startEnt.x; startNode.y = startEnt.y+10; startNode.pinned = true; }
+                else if(startEnt instanceof Weight) { startNode.pinned = false; } 
+                else { startNode.isRopeNode = true; } 
+
+                points.push(startNode);
+                prev = startNode;
+                firstPt = startNode;
+
+                for(let i=1; i<toolState.pts.length; i++) {
+                    let pA = toolState.pts[i-1];
+                    let pB = toolState.pts[i];
+                    let dist = Math.hypot(pB.x - pA.x, pB.y - pA.y);
+                    
+                    while(currentDist + dist >= requiredDist + segLen) {
+                        requiredDist += segLen;
+                        let t = (requiredDist - currentDist) / dist;
+                        let nx = pA.x + (pB.x - pA.x) * t;
+                        let ny = pA.y + (pB.y - pA.y) * t;
+                        
+                        let p = new Point(nx, ny, false, 0.5);
+                        p.isRopeNode = true; 
+                        points.push(p);
+                        constraints.push(new Constraint(prev, p, segLen));
+                        prev = p;
+                    }
+                    currentDist += dist;
+                }
+
+                let lastRaw = toolState.pts[toolState.pts.length-1];
+                let endNode = new Point(lastRaw.x, lastRaw.y, true, 0.5);
+                endNode.isHandle = true;
+                endNode.isRopeNode = true; 
+                points.push(endNode);
+                constraints.push(new Constraint(prev, endNode, Math.hypot(endNode.x-prev.x, endNode.y-prev.y)));
+
+                if(startEnt instanceof Weight) {
+                    constraints.push(new Constraint(startEnt.point, firstPt, 1));
+                }
+            }
+        }
+        toolState.drawing = false;
+        toolState.pts = [];
+        toolState.startEnt = null;
+        setTool('select');
+        calculateCost();
+    }
+}
+
+// --- Listener Attachment ---
+
+canvas.addEventListener('mousedown', e => handleStart(e.clientX, e.clientY));
+canvas.addEventListener('mousemove', e => handleMove(e.clientX, e.clientY));
+canvas.addEventListener('mouseup', handleEnd);
+
+canvas.addEventListener('touchstart', e => {
+    e.preventDefault();
+    const t = e.touches[0];
+    handleStart(t.clientX, t.clientY);
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    const t = e.touches[0];
+    handleMove(t.clientX, t.clientY);
+}, { passive: false });
+
+canvas.addEventListener('touchend', e => {
+    e.preventDefault();
+    handleEnd();
+});
+
+// --- Gameplay System ---
+
+function renderStartScreen() {
+    const list = document.getElementById('start-leaderboard');
+    let history = JSON.parse(localStorage.getItem('pulley_history') || '[]');
+    
+    if(history.length === 0) {
+        list.innerHTML = '<div class="text-center text-gray-400 italic text-xs py-2">尚無紀錄。成為第一人！</div>';
+        return;
+    }
+
+    list.innerHTML = history.map((r, i) => `
+        <div class="flex justify-between border-b pb-1">
+            <span class="font-bold ${i===0?'text-yellow-600':(i===1?'text-gray-500':'text-orange-600')}">#${i+1}</span>
+            <div class="flex gap-2">
+                <span class="font-mono text-gray-500 text-xs">${r.time.toFixed(1)}s</span>
+                <span class="font-mono text-green-600 text-xs">$${r.cost}</span>
+            </div>
+            <span class="font-bold text-blue-600">${r.score}分</span>
+        </div>
+    `).join('');
+}
+
+function startIntro() {
+    document.getElementById('start-screen').classList.add('hidden');
+    document.getElementById('intro-modal').classList.remove('hidden');
+    nextIntro(1); 
+}
+
+function startIntroFromGame() {
+    document.getElementById('intro-modal').classList.remove('hidden');
+    nextIntro(1);
+}
+
+function nextIntro(slideNum) {
+    document.querySelectorAll('.tut-slide').forEach(el => el.classList.remove('active'));
+    document.getElementById('intro-slide-'+slideNum).classList.add('active');
+}
+
+function startGame() {
+    document.getElementById('intro-modal').classList.add('hidden');
+    document.getElementById('game-ui').classList.remove('hidden');
+    restartCampaign();
+}
+
+function goToStart() {
+    document.getElementById('victory-modal').classList.add('hidden');
+    document.getElementById('game-ui').classList.add('hidden');
+    document.getElementById('start-screen').classList.remove('hidden');
+    renderStartScreen();
+    isPlaying = false;
+}
+
+function restartCampaign() {
+    campaignStats.totalTime = 0;
+    campaignStats.totalCost = 0;
+    loadLevel(1);
+    document.getElementById('victory-modal').classList.add('hidden');
+}
+
+function resetLevel() {
+    loadLevel(level);
+}
+
+function loadLevel(l) {
+    level = l;
+    points = []; constraints = []; pulleys = []; weights = []; anchors = [];
+    isPlaying = true; 
+    levelTime = 0; winTimer = 0;
+    updateInteraction();
+    
+    document.getElementById('level-indicator').innerText = `關卡 ${level} / 3`;
+    document.getElementById('timer-display').innerText = "0.0s";
+    
+    const cx = width/2;
+    anchors.push(new Anchor(cx, 100)); 
+    
+    let kg = 140; 
+    if(l===1) kg=140; 
+    if(l===2) kg=180; 
+    if(l===3) kg=260; 
+    
+    let w = new Weight(cx, height-150, kg);
+    w.point.pinned = false; 
+    weights.push(w);
+    
+    const targetEl = document.getElementById('target-weight');
+    if(targetEl) targetEl.innerText = kg + "kg";
+    calculateCost();
+}
+
+function doLevelComplete() {
+    isPlaying = false; 
+    campaignStats.totalTime += levelTime;
+    campaignStats.totalCost += currentCost;
+    
+    const displayTotalTime = campaignStats.totalTime;
+    const displayTotalCost = campaignStats.totalCost;
+    
+    document.getElementById('lvl-time').innerText = displayTotalTime.toFixed(1) + "s";
+    document.getElementById('lvl-cost').innerText = "$" + displayTotalCost;
+
+    if(level < 3) {
+        const subEl = document.getElementById('level-subtitle');
+        if(subEl) subEl.innerText = `挑戰 ${level} / 3 完成。`;
+        document.getElementById('level-modal').classList.remove('hidden');
+    } else {
+        showFinalVictory();
+    }
+}
+
+function nextLevel() {
+    document.getElementById('level-modal').classList.add('hidden');
+    loadLevel(level+1);
+}
+
+function showFinalVictory() {
+    const finalScore = Math.max(0, 10000 - Math.floor(campaignStats.totalTime * 10) - campaignStats.totalCost);
+    
+    document.getElementById('total-time').innerText = campaignStats.totalTime.toFixed(1) + "s";
+    document.getElementById('total-cost').innerText = "$" + campaignStats.totalCost;
+    document.getElementById('final-score').innerText = finalScore;
+
+    let history = JSON.parse(localStorage.getItem('pulley_history') || '[]');
+    history.push({ 
+        score: finalScore, 
+        time: campaignStats.totalTime,
+        cost: campaignStats.totalCost,
+        date: new Date().toLocaleDateString() 
+    });
+    history.sort((a,b) => b.score - a.score);
+    history = history.slice(0, 3);
+    localStorage.setItem('pulley_history', JSON.stringify(history));
+
+    document.getElementById('victory-modal').classList.remove('hidden');
+}
+
+// --- Rendering & Helpers ---
+
+function setTool(t) {
+    currentTool = t;
+    updateInteraction();
+    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+    const btn = document.getElementById('tool-'+t);
+    if(btn) btn.classList.add('active');
+}
+
+function render() {
+    ctx.clearRect(0, 0, width, height);
+    
+    const ty = height - CONFIG.targetHeight;
+    ctx.setLineDash([8, 8]); ctx.strokeStyle = '#22c55e'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(0, ty); ctx.lineTo(width, ty); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = '#22c55e'; ctx.font='bold 12px sans-serif'; ctx.fillText('目標高度', 10, ty-5);
+    
+    if(winTimer > 0) {
+        ctx.fillStyle = 'rgba(34, 197, 94, 0.1)';
+        ctx.fillRect(0, ty - 100, width, 100); 
+        ctx.fillStyle = '#22c55e';
+        ctx.fillRect(width/2 - 50, ty + 10, winTimer, 6); 
+    }
+
+    const fy = height - CONFIG.floorHeight;
+    ctx.fillStyle = '#e2e8f0'; ctx.fillRect(0, fy, width, height-fy);
+    ctx.beginPath(); ctx.moveTo(0, fy); ctx.lineTo(width, fy); ctx.strokeStyle='#cbd5e1'; ctx.lineWidth=2; ctx.stroke();
+
+    anchors.forEach(a => a.draw());
+    weights.forEach(w => w.draw());
+    pulleys.forEach(p => p.draw());
+
+    // Rope
+    if(constraints.length > 0) {
+        ctx.beginPath();
+        constraints.forEach(c => { ctx.moveTo(c.p1.x, c.p1.y); ctx.lineTo(c.p2.x, c.p2.y); });
+        ctx.strokeStyle = CONFIG.ropeColor; ctx.lineWidth = CONFIG.ropeWidth; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.stroke();
+    }
+
+    points.forEach(p => {
+        if(p.isHandle) {
+            ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI*2);
+            ctx.fillStyle = forceApplied >= CONFIG.playerMaxForce ? '#ef4444' : '#22c55e';
+            ctx.fill(); ctx.stroke();
+            if(!mouse.down) { ctx.fillStyle='black'; ctx.font='10px sans-serif'; ctx.fillText('拉', p.x, p.y+15); }
+            if(mouse.down && mouse.drag === p) {
+                ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(mouse.x, mouse.y);
+                ctx.strokeStyle = forceApplied>=CONFIG.playerMaxForce?'red':'green'; ctx.setLineDash([4,4]); ctx.stroke(); ctx.setLineDash([]);
+                ctx.fillText(Math.round(forceApplied)+"N", mouse.x+10, mouse.y);
+            }
+        }
+    });
+
+    if(toolState.drawing && toolState.pts.length) {
+        ctx.beginPath();
+        ctx.moveTo(toolState.pts[0].x, toolState.pts[0].y);
+        for(let pt of toolState.pts) ctx.lineTo(pt.x, pt.y);
+        ctx.strokeStyle = '#93c5fd'; ctx.setLineDash([5,5]); ctx.stroke(); ctx.setLineDash([]);
+    }
+
+    document.getElementById('force-bar').style.width = Math.min(100, (forceApplied/CONFIG.playerMaxForce)*100) + "%";
+    document.getElementById('force-text').innerText = Math.round(forceApplied) + "N";
+}
+
+function loop() {
+    update();
+    render();
+    requestAnimationFrame(loop);
+}
+
+// Init
+renderStartScreen();
+setTool('select');
+loop();
+
+</script>
+</body>
+</html>
