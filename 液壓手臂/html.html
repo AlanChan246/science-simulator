@@ -2,8 +2,8 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>水壓機械實驗室：工程師版 v36</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>水壓機械實驗室：工程師版 v44</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -18,19 +18,27 @@
             display: flex;
             height: 100vh;
             user-select: none;
+            -webkit-user-select: none;
+            touch-action: none; /* Prevent Pull-to-refresh on mobile */
         }
 
         #game-container {
             position: relative;
             flex-grow: 1;
             background-color: #f8fafc;
+            /* Blueprint Grid Pattern */
             background-image: 
-                radial-gradient(circle, #cbd5e1 1px, transparent 1px);
+                linear-gradient(#e2e8f0 1px, transparent 1px),
+                linear-gradient(90deg, #e2e8f0 1px, transparent 1px);
             background-size: 20px 20px;
             cursor: crosshair;
+            touch-action: none;
         }
 
-        canvas { display: block; }
+        canvas { 
+            display: block; 
+            touch-action: none; /* Critical for mobile canvas interaction */
+        }
 
         .ui-panel {
             position: absolute;
@@ -55,7 +63,7 @@
 
         /* --- HUD --- */
         #hud {
-            position: absolute; /* Fixed: Added position absolute */
+            position: absolute;
             top: 10px;
             right: 20px;
             display: flex;
@@ -78,18 +86,15 @@
             top: 75px;
             left: 50%;
             transform: translateX(-50%);
-            
             display: none;
             flex-direction: row;
             align-items: center;
             gap: 15px;
-            
-            background: rgba(255, 255, 255, 0.9);
-            padding: 8px 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 8px 24px;
             border-radius: 30px;
             border: 1px solid #cbd5e1;
             box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-            
             z-index: 40;
             min-width: unset;
             white-space: nowrap;
@@ -166,6 +171,33 @@
         
         .mode-btn.active.play-mode {
             color: #10b981;
+        }
+
+        /* Button Highlight Animation */
+        .btn-highlight {
+            animation: ringPulse 1.5s infinite;
+            border-color: #10b981;
+            color: #10b981;
+            background: #f0fdf4;
+        }
+        
+        @keyframes ringPulse {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        .tool-highlight {
+            animation: toolBounce 1s infinite;
+            border-color: #3b82f6 !important;
+            color: #3b82f6 !important;
+            background: #eff6ff !important;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.4) !important;
+        }
+        
+        @keyframes toolBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
         }
 
         .icon-btn {
@@ -248,6 +280,11 @@
         }
         .tool-btn:hover::after { opacity: 1; }
 
+        /* Disable tooltips on touch devices to prevent stuck tooltips */
+        @media (hover: none) {
+            .tool-btn::after { display: none; }
+        }
+
         #props-panel {
             top: 50%;
             right: 20px;
@@ -290,9 +327,12 @@
         .modal-overlay.active { opacity: 1; pointer-events: auto; }
         
         #start-screen {
-            background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
-            background-size: 30px 30px;
             background-color: #f8fafc;
+            /* Blueprint Grid Pattern */
+            background-image: 
+                linear-gradient(#e2e8f0 1px, transparent 1px),
+                linear-gradient(90deg, #e2e8f0 1px, transparent 1px);
+            background-size: 40px 40px;
         }
 
         /* Win Modal */
@@ -308,8 +348,21 @@
             text-align: center;
             z-index: 50;
             border: 2px solid #10b981;
+            min-width: 320px;
         }
         #win-modal.active { display: block; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+        .learning-box {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            color: #0369a1;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            text-align: left;
+        }
+        .learning-title { font-weight: bold; margin-bottom: 4px; display: block; }
 
         .tutorial-card {
             background: white;
@@ -407,11 +460,32 @@
             overflow: hidden;
         }
 
-        /* Step 1: Hydraulic */
-        .p-chamber { width:40px; height:80px; border:2px solid #475569; border-top:none; position:relative; background:rgba(255,255,255,0.5); margin:0 20px; }
+        /* Step 1: Hydraulic Fix - Properly aligned tube */
+        .p-chamber { 
+            width:40px; height:80px; 
+            border:2px solid #475569; border-top:none; 
+            position:absolute; bottom: 20px;
+            background:rgba(255,255,255,0.5); 
+            z-index: 2; 
+        }
+        .p-left { left: 50px; }
+        .p-right { right: 50px; }
+
         .p-head { background:#334155; position:absolute; left:0; width:36px; height:10px; }
         .p-fluid { position:absolute; bottom:0; left:0; width:100%; background:#3b82f6; opacity:0.5; }
-        .p-tube { height:10px; width:60px; background:#93c5fd; position:absolute; bottom:10px; left:50%; transform:translateX(-50%); }
+        
+        .p-tube { 
+            height: 12px; 
+            width: 140px; /* Connects left 50+40 to right 50 */
+            background: #93c5fd; 
+            position: absolute; 
+            bottom: 30px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            z-index: 1; /* Behind chambers */
+            border-top: 2px solid #475569;
+            border-bottom: 2px solid #475569;
+        }
         
         @keyframes master { 0%,100% { bottom:60px; } 50% { bottom:10px; } }
         @keyframes slave { 0%,100% { bottom:10px; } 50% { bottom:60px; } }
@@ -462,61 +536,79 @@
         .lb-item:first-child { color: #d97706; font-weight: bold; } /* Gold */
     </style>
 </head>
-<body>
+<body class="bg-slate-50">
+
+<!-- Back Button -->
+<a href="../index.html" class="fixed top-6 left-6 z-[100] bg-white/90 backdrop-blur border border-slate-200 px-4 py-2 rounded-xl shadow-sm hover:bg-white transition-all flex items-center gap-2 text-slate-600 font-bold no-underline">
+    <span>←</span> 離開
+</a>
+
+<!-- LOGIN MODAL -->
+<div id="login-modal" class="fixed inset-0 z-[200] hidden flex items-center justify-center bg-slate-900/80 backdrop-blur-sm">
+    <div class="bg-white p-10 rounded-3xl shadow-2xl border border-slate-100 w-full max-w-md mx-auto text-center space-y-6">
+        <h2 class="text-3xl font-black text-slate-800">輸入班別學號</h2>
+        <p class="text-slate-500">例如：1A (01)</p>
+        <input type="text" id="studentInfo" placeholder="班別 (學號)" class="w-full px-6 py-4 rounded-2xl border-2 border-slate-100 focus:border-blue-500 outline-none text-xl text-center font-bold">
+        <div class="flex gap-4">
+            <button onclick="hideLogin()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-4 rounded-2xl font-bold text-xl transition-all">
+                取消
+            </button>
+            <button onclick="confirmLogin()" class="flex-2 bg-blue-600 hover:bg-blue-700 text-white py-4 px-8 rounded-2xl font-bold text-xl transition-all">
+                確認進入
+            </button>
+        </div>
+    </div>
+</div>
 
 <!-- START SCREEN -->
-<div id="start-screen" class="fixed inset-0 z-50 flex flex-col items-center justify-center text-center">
-    <div class="mb-6 scale-90">
-        <i class="fas fa-industry text-5xl text-blue-500 mb-4"></i>
-        <h1 class="text-3xl font-bold text-slate-800 mb-2 tracking-tight">水壓機械實驗室</h1>
-        <p class="text-slate-500 text-lg font-medium">物理與工程模擬器</p>
-    </div>
-    
-    <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-200 max-w-sm w-full mb-8 text-left">
-        <div class="flex items-center gap-3 mb-3">
-            <div class="bg-blue-100 p-2 rounded-lg text-blue-600 text-sm"><i class="fas fa-pencil-ruler"></i></div>
-            <div>
-                <h3 class="font-bold text-slate-800 text-sm">建造機械</h3>
-                <p class="text-slate-500 text-xs">橫樑與液壓針筒。</p>
-            </div>
+<div id="start-screen" class="fixed inset-0 z-50 flex flex-col items-center justify-center text-center bg-slate-50">
+    <div class="bg-white p-8 rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full text-center">
+        <div class="mb-4">
+            <i class="fas fa-industry text-6xl text-blue-500"></i>
         </div>
-        <div class="flex items-center gap-3 mb-3">
-            <div class="bg-purple-100 p-2 rounded-lg text-purple-600 text-sm"><i class="fas fa-project-diagram"></i></div>
-            <div>
-                <h3 class="font-bold text-slate-800 text-sm">連接液壓</h3>
-                <p class="text-slate-500 text-xs">連接針筒以傳遞力量。</p>
-            </div>
-        </div>
-        <div class="flex items-center gap-3">
-            <div class="bg-emerald-100 p-2 rounded-lg text-emerald-600 text-sm"><i class="fas fa-cube"></i></div>
-            <div>
-                <h3 class="font-bold text-slate-800 text-sm">解開謎題</h3>
-                <p class="text-slate-500 text-xs">舉起500公斤貨箱獲勝。</p>
-            </div>
-        </div>
-
-        <!-- Leaderboard -->
-        <div class="leaderboard-box">
-            <div class="lb-title">最佳時間</div>
+        <h1 class="text-3xl font-bold text-slate-800 mb-2">水壓機械實驗室</h1>
+        <p class="text-slate-500 mb-6">工程物理模擬</p>
+        
+        <div class="leaderboard-box mb-6 text-left">
+            <div class="lb-title"><i class="fas fa-trophy text-yellow-500 mr-2"></i> 最佳時間</div>
             <ul class="lb-list" id="lb-list">
                 <li class="lb-item"><span>1. -</span><span>--:--</span></li>
                 <li class="lb-item"><span>2. -</span><span>--:--</span></li>
                 <li class="lb-item"><span>3. -</span><span>--:--</span></li>
             </ul>
         </div>
-    </div>
 
-    <button class="btn-big-start" onclick="startGame()">
-        進入實驗室
-    </button>
+        <button class="btn-big-start w-full" onclick="startGame()">
+            進入實驗室 <i class="fas fa-chevron-right ml-2"></i>
+        </button>
+    </div>
 </div>
 
 <!-- WIN MODAL -->
 <div id="win-modal">
     <div class="text-emerald-500 text-4xl mb-2"><i class="fas fa-check-circle"></i></div>
     <h2 class="text-2xl font-bold text-slate-800 mb-1" id="win-title">成功！</h2>
-    <p class="text-slate-500 mb-6" id="win-msg">負載已固定在目標線上方。</p>
-    <button class="btn-big-start text-sm py-2 px-6" onclick="nextLevel()" id="next-level-btn">下一關 <i class="fas fa-arrow-right ml-2"></i></button>
+    <p class="text-slate-500 mb-4" id="win-msg">負載已固定。</p>
+    
+    <div id="win-learning" class="learning-box" style="display:none;">
+        <span class="learning-title"><i class="fas fa-lightbulb text-yellow-500"></i> 工程知識：</span>
+        <span id="win-learning-text"></span>
+    </div>
+
+    <!-- Final Leaderboard (Hidden by default) -->
+    <div id="win-leaderboard" class="leaderboard-box mb-4" style="display:none;">
+        <div class="lb-title">最終排名</div>
+        <ul class="lb-list" id="win-lb-list"></ul>
+    </div>
+
+    <div class="flex flex-col gap-3 w-full max-w-xs mx-auto">
+        <button class="btn-big-start text-sm py-3 px-6 w-full" onclick="nextLevel()" id="next-level-btn">下一關 <i class="fas fa-arrow-right ml-2"></i></button>
+        <div class="flex gap-2">
+            <button class="btn-big-start text-xs py-2 px-4 bg-slate-500 hover:bg-slate-600 flex-1" onclick="restartAsSameStudent()" id="same-student-btn">同一位同學<br><span class="opacity-80 font-normal">再玩一局</span></button>
+            <button class="btn-big-start text-xs py-2 px-4 bg-amber-600 hover:bg-amber-700 flex-1" onclick="restartAsNewStudent()" id="new-student-btn">另一位同學<br><span class="opacity-80 font-normal">重新登入</span></button>
+        </div>
+        <button class="btn-big-start text-sm py-2 px-6 bg-slate-400 hover:bg-slate-500 w-full" onclick="returnToStart()" id="return-btn" style="display:none;">返回主選單</button>
+    </div>
 </div>
 
 <!-- TUTORIAL INSTRUCTION OVERLAY -->
@@ -618,33 +710,46 @@
             </div>
             <div class="tut-content">
                 
-                <!-- STEP 1: SCIENCE -->
+                <!-- STEP 0: RULES -->
                 <div class="tut-step active" id="step-1">
-                    <h3 style="color:#3b82f6; margin-bottom:10px;">1. 流體動力</h3>
-                    <div class="anim-box">
-                        <div class="p-chamber"><div class="p-fluid" style="animation:f-master 3s infinite ease-in-out"></div><div class="p-head" style="animation:master 3s infinite ease-in-out"></div></div>
-                        <div class="p-tube"></div>
-                        <div class="p-chamber"><div class="p-fluid" style="animation:f-slave 3s infinite ease-in-out"></div><div class="p-head" style="animation:slave 3s infinite ease-in-out"></div></div>
+                    <h3 style="color:#0f172a; margin-bottom:10px;">1. 遊戲規則</h3>
+                    <div style="background:#f1f5f9; padding:15px; border-radius:8px; margin-bottom:15px; border-left:4px solid #3b82f6;">
+                        <ul style="list-style-type: disc; padding-left: 20px; font-size: 0.9rem;">
+                            <li style="margin-bottom:8px;">目標：將重物舉起到<b>綠色虛線</b>上方。</li>
+                            <li style="margin-bottom:8px;">工具：使用<b>針筒</b>和<b>油管</b>建立液壓系統。</li>
+                            <li style="margin-bottom:8px;">模式：在<b>建造模式</b>設計，在<b>測試模式</b>操作。</li>
+                            <li>提示：三角形結構最穩固！</li>
+                        </ul>
                     </div>
-                    <p class="text-sm"><b>帕斯卡定律：</b> 將流體推出主控針筒，會推動從動針筒。</p>
+                </div>
+
+                <!-- STEP 1: SCIENCE -->
+                <div class="tut-step" id="step-2">
+                    <h3 style="color:#3b82f6; margin-bottom:10px;">2. 流體動力原理</h3>
+                    <div class="anim-box">
+                        <div class="p-chamber p-left"><div class="p-fluid" style="animation:f-master 3s infinite ease-in-out"></div><div class="p-head" style="animation:master 3s infinite ease-in-out"></div></div>
+                        <div class="p-tube"></div>
+                        <div class="p-chamber p-right"><div class="p-fluid" style="animation:f-slave 3s infinite ease-in-out"></div><div class="p-head" style="animation:slave 3s infinite ease-in-out"></div></div>
+                    </div>
+                    <p class="text-sm"><b>帕斯卡定律：</b> 液體不可壓縮。將流體從主控端推出，力量會通過油管傳遞，推動另一端的活塞。</p>
                 </div>
 
                 <!-- STEP 2: BUILD BEAMS -->
-                <div class="tut-step" id="step-2">
-                    <h3 style="color:#d97706; margin-bottom:10px;">2. 建造結構</h3>
+                <div class="tut-step" id="step-3">
+                    <h3 style="color:#d97706; margin-bottom:10px;">3. 建造結構</h3>
                     <div class="anim-box">
                         <div style="position:relative; width:150px; height:50px;">
-                            <div class="beam-anim-dot" style="left:0; top:20px;"></div>
-                            <div class="beam-anim-dot" style="left:100px; top:20px;"></div>
-                            <div class="beam-anim-line" style="left:5px; top:22px;"></div>
+                            <div class="beam-anim-dot" style="left:20px; top:20px;"></div>
+                            <div class="beam-anim-dot" style="left:120px; top:20px;"></div>
+                            <div class="beam-anim-line" style="left:25px; top:22px;"></div>
                         </div>
                     </div>
-                    <p class="text-sm">點擊 A 點 &rarr; 點擊 B 點以建造橫樑。利用三角形增加強度。</p>
+                    <p class="text-sm"><b>點擊拖曳</b>：點擊 A 點，然後點擊 B 點來連接橫樑。所有結構都必須連接到地面或既有結構上。</p>
                 </div>
 
                 <!-- STEP 3: CONNECTING HYDRAULICS -->
-                <div class="tut-step" id="step-3">
-                    <h3 style="color:#a855f7; margin-bottom:10px;">3. 連接液壓系統</h3>
+                <div class="tut-step" id="step-4">
+                    <h3 style="color:#a855f7; margin-bottom:10px;">4. 連接液壓系統</h3>
                     <div class="anim-box">
                         <svg width="200" height="100" style="position:absolute;">
                             <circle cx="40" cy="50" r="15" fill="none" stroke="#475569" stroke-width="2"/>
@@ -652,27 +757,18 @@
                             <path class="tube-anim-path" d="M 55 50 C 90 50, 110 50, 145 50" stroke="#a855f7" stroke-width="4" fill="none" />
                         </svg>
                     </div>
-                    <p class="text-sm">使用<b>油管工具</b>。從主控針筒拖曳到從動針筒以連接它們。</p>
-                </div>
-
-                <!-- STEP 4: EDITING -->
-                <div class="tut-step" id="step-4">
-                    <h3 style="color:#0f172a; margin-bottom:10px;">4. 選取與修改</h3>
-                    <div class="anim-box">
-                       <i class="fas fa-mouse-pointer text-4xl text-slate-700 animate-bounce"></i>
-                    </div>
-                    <p class="text-sm">使用<b>選取工具</b>拖曳接點。將一個接點拖曳到另一個接點上即可<b>合併</b>它們。</p>
+                    <p class="text-sm">使用<b>油管工具</b>。點擊一個針筒（主控），然後點擊另一個針筒（從動）來連接它們。</p>
                 </div>
 
                 <!-- STEP 5: MISSION -->
                 <div class="tut-step" id="step-5">
-                    <h3 style="color:#10b981; margin-bottom:10px;">5. 任務目標</h3>
+                    <h3 style="color:#10b981; margin-bottom:10px;">5. 準備出發</h3>
                     <div class="blueprint-box">
                         <div style="position:absolute; bottom:10px; left:30px; width:20px; height:80px; background:#475569; border-radius:4px;"></div>
                         <div style="position:absolute; bottom:85px; left:40px; width:140px; height:10px; background:#d97706; transform:rotate(-20deg);"></div>
                         <div style="position:absolute; top:35px; left:160px; font-size:24px; color:#f59e0b; transform:rotate(-20deg);"><i class="fas fa-hand-rock"></i></div>
                     </div>
-                    <p class="text-sm">建造一台起重機，將500公斤的貨箱舉到綠線上方。</p>
+                    <p class="text-sm">通過5個關卡：<br>1. 抓取訓練<br>2. 機器手臂<br>3. 結構穩定性<br>4. 活動關節<br>5. 重型起重機</p>
                 </div>
             </div>
             <div class="tut-footer">
@@ -689,12 +785,10 @@
 
 <script>
 /**
- * HYDRA-ENGINEER v36 (Traditional Chinese)
- * - Added Session Timer & HUD with fixed positioning
- * - Added Leaderboard (Local Storage)
- * - Level 2: Detailed Step-by-Step Instructions logic
- * - Level 2: Success Delay added
- * - Translated all text to Traditional Chinese
+ * HYDRA-ENGINEER v44 (Traditional Chinese)
+ * - Level 1: Added build instructions for syringe
+ * - Level 3: Auto-advance after building square frame
+ * - Level 4: Auto-advance after connecting tubes
  */
 
 const canvas = document.getElementById('world');
@@ -721,12 +815,15 @@ let hoverEntity = null;
 let hoverToggle = null; 
 
 let currentLevel = 0; 
-let tutorialStage = 0; 
+let playerName = '';
+let tutorialStage = 0; // Usage depends on level
 let levelObjects = {}; 
 let connectSource = null; 
 let connectStartPos = null;
 let buildingStartPoint = null;
 let feedbackTexts = [];
+let level3State = 0; // 0:Start, 1:Frame, 2:Failed, 3:Support
+let level4State = 0; // 0:Base, 1:Arm, 2:Test(Gravity), 3:Collapsed, 4:ShortSyringe, 5:Extended, 6:Connected, 7:Control, 8:Tube, 9:Ready
 
 // Timer State
 let gameStartTime = 0;
@@ -783,7 +880,8 @@ function loadLeaderboard() {
         const li = document.createElement('li');
         li.className = 'lb-item';
         if (i < scores.length) {
-            li.innerHTML = `<span>${i+1}. 工程師</span><span>${formatTime(scores[i])}</span>`;
+            const entry = typeof scores[i] === 'number' ? { name: '工程師', time: scores[i] } : scores[i];
+            li.innerHTML = `<span>${i+1}. ${entry.name}</span><span>${formatTime(entry.time)}</span>`;
         } else {
             li.innerHTML = `<span>${i+1}. -</span><span>--:--</span>`;
         }
@@ -792,12 +890,15 @@ function loadLeaderboard() {
 }
 
 function saveScore() {
+    if (!playerName) return;
     const elapsed = Math.floor((Date.now() - gameStartTime) / 1000);
     const scores = JSON.parse(localStorage.getItem('hydralift_scores') || '[]');
-    scores.push(elapsed);
-    scores.sort((a,b) => a-b);
-    if(scores.length > 5) scores.length = 5;
-    localStorage.setItem('hydralift_scores', JSON.stringify(scores));
+    // Migrate old scores if they are just numbers
+    const normalizedScores = scores.map(s => typeof s === 'number' ? { name: '工程師', time: s } : s);
+    normalizedScores.push({ name: playerName, time: elapsed });
+    normalizedScores.sort((a,b) => a.time - b.time);
+    if(normalizedScores.length > 5) normalizedScores.length = 5;
+    localStorage.setItem('hydralift_scores', JSON.stringify(normalizedScores));
 }
 
 // --- CLASSES ---
@@ -808,10 +909,11 @@ class Point {
         this.oldx = x; this.oldy = y;
         this.buildX = x; this.buildY = y;
         this.fixed = fixed;
+        this.tempFixed = false; 
         this.id = id || generateId();
     }
     update() {
-        if (this.fixed) return;
+        if (this.fixed || this.tempFixed) return;
         let vx = (this.x - this.oldx) * FRICTION;
         let vy = (this.y - this.oldy) * FRICTION;
         this.oldx = this.x; this.oldy = this.y;
@@ -850,8 +952,8 @@ class Stick {
         let diff = targetLen - dist;
         let percent = diff / dist / 2;
         let offsetX = dx * percent; let offsetY = dy * percent;
-        if (!this.p1.fixed) { this.p1.x -= offsetX; this.p1.y -= offsetY; }
-        if (!this.p2.fixed) { this.p2.x += offsetX; this.p2.y += offsetY; }
+        if (!this.p1.fixed && !this.p1.tempFixed) { this.p1.x -= offsetX; this.p1.y -= offsetY; }
+        if (!this.p2.fixed && !this.p2.tempFixed) { this.p2.x += offsetX; this.p2.y += offsetY; }
         if(this.p2 instanceof Grabber) this.p2.angle = Math.atan2(dy, dx);
         if(this.p1 instanceof Grabber) this.p1.angle = Math.atan2(dy, dx) + Math.PI;
     }
@@ -914,6 +1016,9 @@ function init() {
     // Start HUD Timer Interval
     timerInterval = setInterval(updateHUD, 1000);
     
+    // Initialize touch support explicitly
+    initTouch();
+
     resetLevel(); requestAnimationFrame(loop);
 }
 
@@ -957,7 +1062,9 @@ function deserializeState(json) {
     // Restore Refs
     levelObjects = {}; 
     if(currentLevel === 0) {
-        levelObjects.grabMaster = constraints.find(c => c.id === 'l1-master');
+        // levelObjects.grabMaster = constraints.find(c => c.id === 'l1-master'); // Removed for manual build
+        levelObjects.l1pTop = points.find(p => p.id === 'l1-pTop');
+        levelObjects.l1pBot = points.find(p => p.id === 'l1-pBot');
         levelObjects.grabber = grabbers.find(g => g.id === 'l1-grabber');
     }
     if(currentLevel === 1) {
@@ -965,6 +1072,20 @@ function deserializeState(json) {
         levelObjects.armTop = points.find(p => p.id === 'l2-armTop');
         levelObjects.armTip = points.find(p => p.id === 'l2-armTip');
         levelObjects.targetHeight = height - GROUND_Y - 250;
+    }
+    if(currentLevel === 2) {
+        levelObjects.leftBank = points.find(p => p.id === 'l3-leftBank');
+        levelObjects.rightBank = points.find(p => p.id === 'l3-rightBank');
+        levelObjects.floatLeft = points.find(p => p.id === 'l3-floatLeft');
+        levelObjects.floatRight = points.find(p => p.id === 'l3-floatRight');
+    }
+    if(currentLevel === 3) { // New Level 4 Ref
+        levelObjects.l4BaseL = points.find(p => p.id === 'l4-baseL');
+        levelObjects.l4BaseR = points.find(p => p.id === 'l4-baseR');
+        levelObjects.l4TopL = points.find(p => p.id === 'l4-topL');
+        levelObjects.l4Hinge = points.find(p => p.id === 'l4-hinge');
+        levelObjects.l4ArmEnd = points.find(p => p.id === 'l4-armEnd');
+        levelObjects.l4ArmTip = points.find(p => p.id === 'l4-armTip');
     }
 }
 
@@ -976,25 +1097,52 @@ function saveState() {
 function undo() { if (historyIndex > 0) { historyIndex--; deserializeState(historyStack[historyIndex]); connectSource = null; buildingStartPoint = null; } }
 function redo() { if (historyIndex < historyStack.length - 1) { historyIndex++; deserializeState(historyStack[historyIndex]); connectSource = null; buildingStartPoint = null; } }
 
+function returnToStart() {
+    document.getElementById('win-modal').classList.remove('active');
+    document.getElementById('start-screen').style.display = 'flex';
+    currentLevel = 0;
+    gameActive = false;
+    resetLevel(); 
+    loadLeaderboard(); // Refresh scores
+}
+
 function resetPositions() {
     let baseX = width / 2 - 200;
     if (currentLevel === 0) {
-        loadBox.x = baseX + 100; loadBox.y = height - GROUND_Y - 40; 
+        const stationMechX = width * 0.65;
+        loadBox.x = stationMechX - 25; 
+        loadBox.y = height - GROUND_Y - 50; 
     } else if (currentLevel === 1) {
         loadBox.x = -1000;
-    } else {
-        loadBox.x = baseX + 250; loadBox.y = height - GROUND_Y - 60;
+        loadBox.y = 0;
+    } else if (currentLevel === 2) {
+        // Stability level
+        loadBox.x = width / 2 - 30;
+        loadBox.y = height - GROUND_Y - 160; 
+    } else if (currentLevel === 3) {
+        // Movable Arm level (Index 3)
+        loadBox.x = -1000;
+        loadBox.y = 0;
+    } else if (currentLevel === 4) {
+        // Crane level (Index 4)
+        loadBox.x = baseX + 250;
+        loadBox.y = height - GROUND_Y - 60;
     }
 }
 
 function resetLevel() {
     points = []; constraints = []; tubes = []; grabbers = [];
     levelObjects = {};
-    selectedTool = 'beam'; setMode('build'); 
+    selectedTool = null; setMode('build'); 
     hasWon = false; winTimer = 0; winDelay = 0;
     level2MotionY = { min: Infinity, max: -Infinity };
+    level3State = 0;
+    level4State = 0;
     document.getElementById('win-modal').classList.remove('active');
     document.getElementById('next-level-btn').style.display = 'inline-block';
+    document.getElementById('return-btn').style.display = 'none';
+    document.getElementById('win-learning').style.display = 'none';
+    document.getElementById('win-leaderboard').style.display = 'none';
 
     let baseX = width / 2 - 200;
     let baseY = height - GROUND_Y;
@@ -1004,21 +1152,24 @@ function resetLevel() {
     let hintText = "";
 
     if (currentLevel === 0) {
-        // --- LEVEL 1: GRABBER TRAINING ---
+        // --- LEVEL 1: GRABBER TRAINING (UPDATED) ---
         levelConfig.boxMass = 10;
-        hintText = "將左側針筒連接到右側爪子。";
-        tutorialStage = 0;
+        hintText = "建造針筒，連接到右側爪子。";
+        tutorialStage = 0; // 0:Select Syringe, 1:Build Syringe, 2:Select Tube, 3:Connect, 4:Test
         
         const stationControlX = width * 0.25;
         const stationMechX = width * 0.65;
         
-        let pHandle = new Point(stationControlX, height - GROUND_Y - 250, true);
-        let pBody = new Point(stationControlX, height - GROUND_Y - 170, true);
-        points.push(pHandle, pBody);
+        // Wall points for Syringe Construction
+        let pTop = new Point(stationControlX, height - GROUND_Y - 250, true, 'l1-pTop');
+        let pBot = new Point(stationControlX, height - GROUND_Y - 170, true, 'l1-pBot');
+        points.push(pTop, pBot);
         
-        let master = new Stick(pHandle, pBody, null, 'syringe', null, 'l1-master');
-        constraints.push(master);
-        levelObjects.grabMaster = master;
+        // Structural beam for "Wall"
+        constraints.push(new Stick(pTop, pBot, null, 'beam'));
+
+        levelObjects.l1pTop = pTop;
+        levelObjects.l1pBot = pBot;
         
         let beamY = height - GROUND_Y - 280;
         let supportL = new Point(stationMechX - 50, beamY, true);
@@ -1076,11 +1227,55 @@ function resetLevel() {
 
         loadBox = { x: -1000, y: 0, w: 10, h: 10, mass: 0 }; 
 
-    } else {
-        // --- LEVEL 3: CRANE ---
+    } else if (currentLevel === 2) {
+        // --- LEVEL 3: STABILITY (Updated) ---
+        levelConfig.boxMass = 100;
+        hintText = "第3關：結構穩定性。請先建造一個方形框架。";
+        document.getElementById('tutorial-overlay').classList.add('active');
+        
+        let leftBank = new Point(centerX - 60, height - GROUND_Y, true, 'l3-leftBank');
+        let rightBank = new Point(centerX + 60, height - GROUND_Y, true, 'l3-rightBank');
+        let floatLeft = new Point(centerX - 60, height - GROUND_Y - 100, false, 'l3-floatLeft');
+        let floatRight = new Point(centerX + 60, height - GROUND_Y - 100, false, 'l3-floatRight');
+        points.push(leftBank, rightBank, floatLeft, floatRight);
+        levelObjects.leftBank = leftBank; levelObjects.rightBank = rightBank; levelObjects.floatLeft = floatLeft; levelObjects.floatRight = floatRight;
+        loadBox = { x: centerX - 30, y: height - GROUND_Y - 160, w: 60, h: 60, mass: 100 };
+        level3State = 0; 
+
+    } else if (currentLevel === 3) {
+        // --- LEVEL 4: MOVABLE ARM (New) ---
+        levelConfig.boxMass = "N/A";
+        hintText = "第4關：建造可動關節。請依照指示建造框架與液壓肌肉。";
+        document.getElementById('tutorial-overlay').classList.add('active');
+        
+        // Base Points
+        let bL = new Point(200, height - GROUND_Y, true, 'l4-baseL');
+        let bR = new Point(300, height - GROUND_Y, true, 'l4-baseR');
+        let tL = new Point(200, height - GROUND_Y - 100, true, 'l4-topL');
+        let hinge = new Point(300, height - GROUND_Y - 100, true, 'l4-hinge');
+        
+        // Arm Ghost Points (Initially loose for building)
+        let armEnd = new Point(500, height - GROUND_Y - 100, false, 'l4-armEnd');
+        let armTip = new Point(400, height - GROUND_Y - 150, false, 'l4-armTip');
+
+        points.push(bL, bR, tL, hinge, armEnd, armTip);
+        
+        levelObjects.l4BaseL = bL;
+        levelObjects.l4BaseR = bR;
+        levelObjects.l4TopL = tL;
+        levelObjects.l4Hinge = hinge;
+        levelObjects.l4ArmEnd = armEnd;
+        levelObjects.l4ArmTip = armTip;
+        levelObjects.targetHeight = height - GROUND_Y - 200; // Target lift height
+
+        level4State = 0;
+        loadBox = { x: -1000, y: 0, w: 10, h: 10, mass: 0 }; 
+
+    } else if (currentLevel === 4) {
+        // --- LEVEL 5: CRANE (Was Level 4) ---
         levelConfig.boxMass = 50;
-        hintText = "第3關：建造重型起重機以舉起500公斤。";
-        document.getElementById('tutorial-overlay').classList.remove('active');
+        hintText = "第5關：建造液壓機械手臂，抓取並舉起50kg重物。";
+        document.getElementById('tutorial-overlay').classList.add('active'); 
         loadBox = { x: baseX + 250, y: height - GROUND_Y - 60, w: 60, h: 60, mass: 50 };
         
         let p1 = new Point(baseX, baseY, true); let p2 = new Point(baseX + 60, baseY, true);
@@ -1094,7 +1289,7 @@ function resetLevel() {
 }
 
 function nextLevel() {
-    if (currentLevel < 2) {
+    if (currentLevel < 4) {
         currentLevel++;
         document.getElementById('win-modal').classList.remove('active');
         resetLevel();
@@ -1102,77 +1297,194 @@ function nextLevel() {
         // End of game
         gameActive = false;
         saveScore();
+        const scores = JSON.parse(localStorage.getItem('hydralift_scores') || '[]');
+        
         document.getElementById('win-title').innerText = "遊戲完成！";
-        document.getElementById('win-msg').innerText = "你是大師級工程師！請查看排行榜。";
+        document.getElementById('win-msg').innerText = "你已精通水壓機械工程。";
+        document.getElementById('win-learning').style.display = 'none';
+        
+        // Show Leaderboard
+        document.getElementById('win-leaderboard').style.display = 'block';
+        const lbList = document.getElementById('win-lb-list');
+        lbList.innerHTML = '';
+        for(let i=0; i<3; i++) {
+            const li = document.createElement('li');
+            li.className = 'lb-item';
+            if (i < scores.length) {
+                li.innerHTML = `<span>${i+1}. 工程師</span><span>${formatTime(scores[i])}</span>`;
+            } else {
+                li.innerHTML = `<span>${i+1}. -</span><span>--:--</span>`;
+            }
+            lbList.appendChild(li);
+        }
+
         document.getElementById('next-level-btn').style.display = 'none';
+        document.getElementById('return-btn').style.display = 'inline-block';
+        document.getElementById('win-modal').classList.add('active');
     }
 }
 
-// --- LEVEL 2 INSTRUCTION LOGIC ---
+// --- TUTORIAL LOGIC ---
 function getLevel2Step() {
     if (currentLevel !== 1) return 0;
-    
-    // Check 1: Top Syringe Built?
     let mTop = levelObjects.mastTop;
     let aTop = levelObjects.armTop;
     let topSyringe = constraints.find(c => c.type === 'syringe' && ((c.p1===mTop && c.p2===aTop) || (c.p1===aTop && c.p2===mTop)));
-    
-    if (!topSyringe) return 1; // Step 1: Build Top
-    
-    // Check 2: Top Syringe Extended?
-    let isExtended = Math.abs(topSyringe.syringeProps.currentLen - topSyringe.syringeProps.maxLen) < 10;
-    if (!isExtended) return 2; // Step 2: Extend
-    
-    // Check 3: Bottom Syringe Built?
-    // Simplified check: any other syringe exists
+    if (!topSyringe) return 1; 
+    let isExtended = topSyringe.syringeProps.currentLen > topSyringe.syringeProps.maxLen * 0.95;
+    if (!isExtended) return 2; 
     let botSyringe = constraints.find(c => c.type === 'syringe' && c !== topSyringe);
-    if (!botSyringe) return 3; // Step 3: Build Bottom
-    
-    // Check 4: Connected?
-    if (tubes.length === 0) return 4; // Step 4: Connect
-    
-    // Check 5: Mode?
-    if (mode === 'build') return 5; // Step 5: Test
-    
-    return 6; // Move
+    if (!botSyringe) return 3; 
+    if (tubes.length === 0) return 4; 
+    if (mode === 'build') return 5; 
+    return 6; 
 }
 
 function updateTutorialOverlay() {
     let tText = document.getElementById('tut-text');
     let tSub = document.getElementById('tut-sub');
+    let tubeBtn = document.getElementById('tool-tube');
+    let syringeBtn = document.getElementById('tool-syringe');
+    let beamBtn = document.getElementById('tool-beam');
+    let playBtn = document.getElementById('btn-play');
+    let selectBtn = document.getElementById('tool-select');
     
+    // Reset Highlights
+    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('tool-highlight'));
+    if(playBtn) playBtn.classList.remove('btn-highlight');
+
     if (currentLevel === 0) {
+        // Level 1: Grabber Training
         if(tutorialStage === 0) {
-            tText.innerHTML = '<i class="fas fa-plug text-purple-500"></i> 連接';
-            tSub.innerText = "選取油管工具。將主控針筒拖曳至爪子。";
-        } else if (tutorialStage === 1) {
-            tText.innerHTML = '<i class="fas fa-play text-green-500"></i> 測試';
+            // Select Syringe
+            tText.innerHTML = '<i class="fas fa-mouse-pointer text-blue-500"></i> 1. 選取工具';
+            tSub.innerText = "點擊左側的「針筒」工具。";
+            if(syringeBtn) syringeBtn.classList.add('tool-highlight');
+            if(selectedTool === 'syringe') tutorialStage = 1;
+        } 
+        if (tutorialStage === 1) {
+            // Build Syringe
+            tText.innerHTML = '<i class="fas fa-hammer text-purple-500"></i> 2. 建造';
+            tSub.innerText = "在左側支架上建立一個針筒。";
+            let hasSyringe = constraints.some(c => c.type === 'syringe');
+            if(hasSyringe) tutorialStage = 2;
+        }
+        if (tutorialStage === 2) {
+            // Select Tube
+            tText.innerHTML = '<i class="fas fa-mouse-pointer text-blue-500"></i> 3. 選取工具';
+            tSub.innerText = "點擊「油管」工具。";
+            if(tubeBtn) tubeBtn.classList.add('tool-highlight');
+            if(selectedTool === 'tube') tutorialStage = 3;
+        }
+        if (tutorialStage === 3) {
+            // Connect
+            tText.innerHTML = '<i class="fas fa-plug text-purple-500"></i> 4. 連接';
+            tSub.innerText = "將針筒拖曳連接至右側爪子。";
+            if(tubes.length > 0) tutorialStage = 4;
+        }
+        if (tutorialStage === 4) {
+            // Test
+            tText.innerHTML = '<i class="fas fa-play text-green-500"></i> 5. 測試';
             tSub.innerText = "點擊上方的「測試」按鈕。";
-        } else if (tutorialStage === 2) {
+            if(playBtn) playBtn.classList.add('btn-highlight');
+        } else if (tutorialStage === 5) {
+            // Play
             tText.innerHTML = '<i class="fas fa-hand-rock text-orange-500"></i> 抓取';
             tSub.innerText = "拖曳針筒活塞以關閉爪子。";
         }
     } else if (currentLevel === 1) {
+        // Level 2: Robotic Arm
         let step = getLevel2Step();
         if (step === 1) {
             tText.innerHTML = '<i class="fas fa-hammer text-blue-500"></i> 1. 建造';
-            tSub.innerText = "在桅杆和上手臂之間建造針筒。";
+            tSub.innerText = "選取針筒工具，在桅杆和上手臂之間建造針筒。";
+            if(selectedTool !== 'syringe') if(syringeBtn) syringeBtn.classList.add('tool-highlight');
         } else if (step === 2) {
-            tText.innerHTML = '<i class="fas fa-expand-alt text-red-500"></i> 2. 伸展';
-            tSub.innerText = "點擊針筒以伸展它（藍色手把）。";
+            tText.innerHTML = '<i class="fas fa-expand-alt text-red-500"></i> 2. 伸展 (重要！)';
+            tSub.innerText = "點擊針筒以伸展它。";
         } else if (step === 3) {
             tText.innerHTML = '<i class="fas fa-hammer text-blue-500"></i> 3. 建造控制器';
             tSub.innerText = "在左牆上建造另一個針筒。";
+            if(selectedTool !== 'syringe') if(syringeBtn) syringeBtn.classList.add('tool-highlight');
         } else if (step === 4) {
             tText.innerHTML = '<i class="fas fa-plug text-purple-500"></i> 4. 連接';
-            tSub.innerText = "使用油管工具連接它們。";
+            tSub.innerText = "使用油管工具連接這兩個針筒。";
+            if(selectedTool !== 'tube') if(tubeBtn) tubeBtn.classList.add('tool-highlight');
         } else if (step === 5) {
             tText.innerHTML = '<i class="fas fa-play text-green-500"></i> 5. 測試';
             tSub.innerText = "按「測試」開始。";
+            if(playBtn) playBtn.classList.add('btn-highlight');
         } else {
             tText.innerHTML = '<i class="fas fa-arrows-alt-v text-orange-500"></i> 6. 移動';
             tSub.innerText = "推動控制針筒以舉起手臂。";
         }
+    } else if (currentLevel === 2) {
+        // Level 3: Stability
+        if (level3State === 0) {
+            tText.innerHTML = '<i class="fas fa-vector-square text-blue-500"></i> 1. 建造方形';
+            tSub.innerText = "使用橫樑連接四個點，形成一個沒有對角支撐的方形。";
+            if(selectedTool !== 'beam') if(beamBtn) beamBtn.classList.add('tool-highlight');
+            if (constraints.length >= 4) level3State = 1;
+        } else if (level3State === 1) {
+            tText.innerHTML = '<i class="fas fa-play text-red-500"></i> 2. 測試失敗';
+            tSub.innerText = "結構不穩。按下測試，觀察方形倒塌！";
+            if(playBtn) playBtn.classList.add('btn-highlight');
+        } else if (level3State === 2) {
+            tText.innerHTML = '<i class="fas fa-times-circle text-red-500"></i> 3. 修復';
+            tSub.innerText = "倒塌了！點擊「建造」返回，增加一根對角線橫樑。";
+             if(mode === 'play') { if(document.getElementById('btn-build')) document.getElementById('btn-build').classList.add('btn-highlight'); } 
+             else { level3State = 3; updateTutorialOverlay(); }
+        } else if (level3State === 3) {
+            tText.innerHTML = '<i class="fas fa-shield-alt text-green-500"></i> 4. 穩固';
+            tSub.innerText = "增加對角線後，再次測試看看！";
+            if(playBtn) playBtn.classList.add('btn-highlight');
+        }
+    } else if (currentLevel === 3) {
+        // Level 4: Movable Arm
+        if (level4State === 0) {
+            tText.innerHTML = '<i class="fas fa-cube text-blue-500"></i> 1. 建造基座';
+            tSub.innerText = "建造左側的固定基座框架 (含對角線)。";
+            if(selectedTool !== 'beam') if(beamBtn) beamBtn.classList.add('tool-highlight');
+        } else if (level4State === 1) {
+            tText.innerHTML = '<i class="fas fa-code-branch text-blue-500"></i> 2. 建造手臂';
+            tSub.innerText = "從右上方鉸鏈點延伸出一個三角形手臂。";
+            if(selectedTool !== 'beam') if(beamBtn) beamBtn.classList.add('tool-highlight');
+        } else if (level4State === 2) {
+            tText.innerHTML = '<i class="fas fa-play text-red-500"></i> 3. 測試重力';
+            tSub.innerText = "測試看看。沒有肌肉支撐，手臂會因重力垂下。";
+            if(playBtn) playBtn.classList.add('btn-highlight');
+        } else if (level4State === 3) {
+            tText.innerHTML = '<i class="fas fa-times-circle text-red-500"></i> 4. 觀察';
+            tSub.innerText = "手臂下垂了！點擊「建造」返回。";
+            if(mode === 'play') { if(document.getElementById('btn-build')) document.getElementById('btn-build').classList.add('btn-highlight'); }
+            else { level4State = 4; updateTutorialOverlay(); }
+        } else if (level4State === 4) {
+            tText.innerHTML = '<i class="fas fa-syringe text-purple-500"></i> 5. 放置短針筒';
+            tSub.innerText = "在左上角錨點建立一個短針筒 (參考虛線)。";
+            if(selectedTool !== 'syringe') if(syringeBtn) syringeBtn.classList.add('tool-highlight');
+        } else if (level4State === 5) {
+            tText.innerHTML = '<i class="fas fa-expand-arrows-alt text-purple-500"></i> 6. 伸展針筒';
+            tSub.innerText = "點擊剛才的針筒以伸展它。";
+        } else if (level4State === 6) {
+            tText.innerHTML = '<i class="fas fa-link text-purple-500"></i> 7. 連接手臂';
+            tSub.innerText = "選取「選取工具」，拖曳針筒末端至手臂上方錨點。";
+            if(selectBtn) selectBtn.classList.add('tool-highlight');
+        } else if (level4State === 7) {
+            tText.innerHTML = '<i class="fas fa-gamepad text-green-500"></i> 8. 建造動力缸';
+            tSub.innerText = "在右下方建立另一個針筒，連接到手臂末端。";
+            if(selectedTool !== 'syringe') if(syringeBtn) syringeBtn.classList.add('tool-highlight');
+        } else if (level4State === 8) {
+            tText.innerHTML = '<i class="fas fa-project-diagram text-purple-500"></i> 9. 連接油管';
+            tSub.innerText = "重要：連接兩個針筒，形成液壓迴路！";
+            if(selectedTool !== 'tube') if(tubeBtn) tubeBtn.classList.add('tool-highlight');
+        } else if (level4State === 9) {
+            tText.innerHTML = '<i class="fas fa-play text-green-500"></i> 10. 測試';
+            tSub.innerText = "點擊測試，推動液壓缸舉起手臂！";
+            if(playBtn) playBtn.classList.add('btn-highlight');
+        }
+    } else if (currentLevel === 4) {
+        tText.innerHTML = '<i class="fas fa-truck-loading text-orange-500"></i> 任務目標';
+        tSub.innerText = "建造一個液壓機械手臂來抓取並舉起箱子。";
     }
 }
 
@@ -1186,7 +1498,11 @@ function updatePhysics() {
              if (winDelay > 60 && !hasWon) { 
                  hasWon = true;
                  document.getElementById('win-title').innerText = "訓練完成！";
-                 document.getElementById('win-msg').innerText = "液壓系統運作正常。前往實地測試。";
+                 document.getElementById('win-msg').innerText = "液壓系統運作正常。";
+                 const learn = document.getElementById('win-learning');
+                 const learnText = document.getElementById('win-learning-text');
+                 learn.style.display = "block";
+                 learnText.innerText = "流體傳動：力量可以通過不可壓縮的流體在密閉系統中傳遞。";
                  document.getElementById('next-level-btn').style.display = 'inline-block';
                  document.getElementById('win-modal').classList.add('active');
              }
@@ -1203,10 +1519,14 @@ function updatePhysics() {
 
             if(hasHydraulics && range > 100) {
                  winDelay++;
-                 if (winDelay > 60 && !hasWon) {
+                 if (winDelay > 120 && !hasWon) {
                      hasWon = true;
                      document.getElementById('win-title').innerText = "系統上線！";
                      document.getElementById('win-msg').innerText = "偵測到運動。液壓迴路已驗證。";
+                     const learn = document.getElementById('win-learning');
+                     const learnText = document.getElementById('win-learning-text');
+                     learn.style.display = "block";
+                     learnText.innerText = "拮抗作用：要產生來回運動，通常需要一對作用力相反的結構。";
                      document.getElementById('next-level-btn').style.display = 'inline-block';
                      document.getElementById('win-modal').classList.add('active');
                  }
@@ -1214,6 +1534,7 @@ function updatePhysics() {
         }
     }
 
+    // Logic for Syringes (All Levels)
     if (dragEntity && dragEntity instanceof Stick && dragEntity.type === 'syringe') {
         let driver = dragEntity;
         let dx = driver.p2.x - driver.p1.x; let dy = driver.p2.y - driver.p1.y;
@@ -1287,15 +1608,93 @@ function updatePhysics() {
 
     if(loadBox.y < height - GROUND_Y - loadBox.h) loadBox.y += GRAVITY; else loadBox.y = height - GROUND_Y - loadBox.h;
     
-    // Win Condition (Level 3 - Main)
-    if(currentLevel === 2) {
-        if (loadBox.y + loadBox.h < height * WIN_HEIGHT_RATIO) {
+    // Win Condition (Level 3 - Stability)
+    if(currentLevel === 2 && mode === 'play') {
+        if (loadBox.y > height - GROUND_Y - 80) {
+            if (level3State === 1) { level3State = 2; updateTutorialOverlay(); }
+            winTimer = 0;
+        } else {
+            winTimer++;
+            if(winTimer > WIN_FRAMES && !hasWon) {
+                if (level3State >= 1) { 
+                     hasWon = true;
+                    document.getElementById('win-title').innerText = "結構穩固！";
+                    document.getElementById('win-msg').innerText = "三角形結構成功支撐了重物。";
+                    const learn = document.getElementById('win-learning');
+                    const learnText = document.getElementById('win-learning-text');
+                    learn.style.display = "block";
+                    learnText.innerText = "結構力學：方形結構不穩定，容易變形。加入對角線（桁架）能防止變形。";
+                    document.getElementById('next-level-btn').style.display = 'inline-block';
+                    document.getElementById('win-modal').classList.add('active');
+                }
+            }
+        }
+    }
+
+    // Win Condition (Level 4 - Movable Arm)
+    if(currentLevel === 3 && mode === 'play') {
+        let armTip = levelObjects.l4ArmTip;
+        let armEnd = levelObjects.l4ArmEnd;
+        let tipY = armEnd.y; 
+        
+        // Detect "Collapse" (Step 3)
+        if (tipY > height - GROUND_Y - 120) {
+            if (level4State === 2) {
+                level4State = 3; 
+                updateTutorialOverlay();
+            }
+        }
+
+        // Detect Lift
+        if (tipY < height - GROUND_Y - 200 && level4State >= 9) {
+            winTimer++;
+            if (winTimer > 180 && !hasWon) { // ~3 seconds to play
+                hasWon = true;
+                document.getElementById('win-title').innerText = "關節運作正常！";
+                document.getElementById('win-msg').innerText = "液壓肌肉成功舉起了手臂。";
+                const learn = document.getElementById('win-learning');
+                const learnText = document.getElementById('win-learning-text');
+                learn.style.display = "block";
+                learnText.innerText = "槓桿原理：液壓缸作為施力點，通過支點（鉸鏈）帶動抗力點（手臂）移動。";
+                document.getElementById('next-level-btn').style.display = 'inline-block';
+                document.getElementById('win-modal').classList.add('active');
+            }
+        } else {
+            winTimer = 0; // Reset if it falls down
+        }
+    }
+
+    // Win Condition (Level 5 - Crane)
+    if(currentLevel === 4) {
+        let targetY = height * 0.65; // Lower target line
+        if (loadBox.y + loadBox.h < targetY) {
             winTimer++;
             if(winTimer > WIN_FRAMES && !hasWon) {
                 hasWon = true;
-                document.getElementById('win-title').innerText = "任務成功！";
-                document.getElementById('win-msg').innerText = "500公斤負載已固定。";
+                gameActive = false;
+                saveScore();
+                const scores = JSON.parse(localStorage.getItem('hydralift_scores') || '[]');
+                
+                document.getElementById('win-title').innerText = "遊戲完成！";
+                document.getElementById('win-msg').innerText = "你已精通水壓機械工程。";
+                document.getElementById('win-learning').style.display = 'none';
+                
+                document.getElementById('win-leaderboard').style.display = 'block';
+                const lbList = document.getElementById('win-lb-list');
+                lbList.innerHTML = '';
+                for(let i=0; i<3; i++) {
+                    const li = document.createElement('li');
+                    li.className = 'lb-item';
+                    if (i < scores.length) {
+                        li.innerHTML = `<span>${i+1}. 工程師</span><span>${formatTime(scores[i])}</span>`;
+                    } else {
+                        li.innerHTML = `<span>${i+1}. -</span><span>--:--</span>`;
+                    }
+                    lbList.appendChild(li);
+                }
+
                 document.getElementById('next-level-btn').style.display = 'none';
+                document.getElementById('return-btn').style.display = 'inline-block';
                 document.getElementById('win-modal').classList.add('active');
             }
         } else {
@@ -1329,81 +1728,253 @@ function mergePoints(keptPoint, removedPoint) {
     points = points.filter(p => p !== removedPoint);
 }
 
+// --- LOGIC: HYDRAULIC HELPERS ---
+function isSyringeConnectedToGrabber(syringe) {
+    return tubes.some(t => (t.source === syringe && t.target instanceof Grabber) || (t.target === syringe && t.source instanceof Grabber));
+}
+
+function toggleSyringe(syringe) {
+    // Prevent toggling if connected to grabber in Build Mode (keep it open/extended)
+    if (mode === 'build' && isSyringeConnectedToGrabber(syringe)) return;
+
+    // Robust Toggle: Check if closer to max or min
+    let isExt = Math.abs(syringe.syringeProps.currentLen - syringe.syringeProps.maxLen) < Math.abs(syringe.syringeProps.currentLen - syringe.syringeProps.minLen);
+    let targetLen = isExt ? syringe.syringeProps.minLen : syringe.syringeProps.maxLen;
+    let newState = !isExt; 
+    
+    applySyringeLength(syringe, targetLen);
+    
+    let neighbors = findConnectedSyringes(syringe);
+    neighbors.forEach(n => {
+        let nTarget = newState ? n.syringeProps.minLen : n.syringeProps.maxLen;
+        applySyringeLength(n, nTarget);
+    });
+}
+
+function applySyringeLength(s, len) {
+    s.syringeProps.currentLen = len;
+    let ang = Math.atan2(s.p2.y - s.p1.y, s.p2.x - s.p1.x);
+    if (!s.p2.fixed && !s.p2.tempFixed) { s.p2.x = s.p1.x + Math.cos(ang)*len; s.p2.y = s.p1.y + Math.sin(ang)*len; s.p2.buildX=s.p2.x; s.p2.buildY=s.p2.y; }
+    else { s.p1.x = s.p2.x - Math.cos(ang)*len; s.p1.y = s.p2.y - Math.sin(ang)*len; s.p1.buildX=s.p1.x; s.p1.buildY=s.p1.y; }
+}
+
+function findConnectedSyringes(startSyringe) {
+    let results = [];
+    tubes.forEach(t => {
+        if (t.source === startSyringe && t.target instanceof Stick && t.target.type === 'syringe') results.push(t.target);
+        if (t.target === startSyringe && t.source instanceof Stick && t.source.type === 'syringe') results.push(t.source);
+    });
+    return results;
+}
+
 // --- VISUAL GUIDES ---
 function drawTutorialGuide() {
-    if (currentLevel === 0) {
-        if (tutorialStage === 0 && levelObjects.grabMaster && levelObjects.grabMaster.p1 && levelObjects.grabber) {
-            tutAnimFrame++;
-            let m = levelObjects.grabMaster;
-            let g = levelObjects.grabber;
-            let startX = (m.p1.x + m.p2.x)/2;
-            let startY = (m.p1.y + m.p2.y)/2;
-            let endX = g.x;
-            let endY = g.y;
-            let t = (Math.sin(tutAnimFrame * 0.05) + 1) / 2; 
-            let curX = startX + (endX - startX) * t;
-            let curY = startY + (endY - startY) * t;
-
-            ctx.fillStyle = "rgba(0, 0, 0, 0.5)"; ctx.beginPath();
-            ctx.moveTo(curX, curY); ctx.lineTo(curX + 15, curY + 15); ctx.lineTo(curX + 5, curY + 15); ctx.lineTo(curX + 5, curY + 25);
-            ctx.lineTo(curX - 5, curY + 25); ctx.lineTo(curX - 5, curY + 15); ctx.lineTo(curX - 15, curY + 15); ctx.closePath(); ctx.fill();
-            
-            ctx.beginPath(); ctx.moveTo(startX, startY); ctx.lineTo(curX, curY); ctx.strokeStyle = "rgba(168, 85, 247, 0.5)"; 
-            ctx.setLineDash([5, 5]); ctx.lineWidth = 2; ctx.stroke(); ctx.setLineDash([]);
-        }
-        if (tutorialStage === 1 && mode === 'build') {
-            tutAnimFrame++;
-            let scale = 1 + Math.sin(tutAnimFrame * 0.1) * 0.1;
-            let btnX = width / 2 + 80; let btnY = 30;
-            ctx.beginPath(); ctx.arc(btnX, btnY, 30 * scale, 0, Math.PI * 2);
-            ctx.strokeStyle = "rgba(16, 185, 129, 0.8)"; ctx.lineWidth = 4; ctx.stroke();
-        }
-    }
+    tutAnimFrame++;
     
-    // --- LEVEL 2 GUIDE: GHOST SYRINGE ---
-    if (currentLevel === 1 && mode === 'build') {
-        tutAnimFrame++;
-        let step = getLevel2Step();
-        let mTop = levelObjects.mastTop;
-        let aTop = levelObjects.armTop;
-
-        if (step === 1 && mTop && aTop) {
-            // Draw Ghost Syringe Blueprint
-            ctx.save();
-            ctx.setLineDash([5, 5]);
-            ctx.strokeStyle = "rgba(59, 130, 246, 0.5)";
+    // Level 0 (Grabber)
+    if (currentLevel === 0) {
+        if (tutorialStage === 1 && levelObjects.l1pTop && levelObjects.l1pBot) {
+            // Guide for building Syringe
+            let t = levelObjects.l1pTop; let b = levelObjects.l1pBot;
+            ctx.save(); 
+            ctx.setLineDash([5, 5]); 
+            ctx.strokeStyle = "rgba(59, 130, 246, 0.8)"; // More visible
             ctx.lineWidth = 4;
-            ctx.beginPath(); ctx.moveTo(mTop.x, mTop.y); ctx.lineTo(aTop.x, aTop.y); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(b.x, b.y); ctx.stroke();
             
-            let cx = (mTop.x + aTop.x) / 2; let cy = (mTop.y + aTop.y) / 2 - 20;
-            ctx.fillStyle = "#3b82f6"; ctx.font = "bold 14px sans-serif"; ctx.textAlign = "center";
-            ctx.fillText("在此建造", cx, cy);
-            ctx.setLineDash([]);
+            // Anchor dots
+            ctx.fillStyle = "#3b82f6";
+            ctx.beginPath(); ctx.arc(t.x, t.y, 4, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(b.x, b.y, 4, 0, Math.PI*2); ctx.fill();
+
+            ctx.fillStyle = "#3b82f6"; ctx.font = "bold 14px sans-serif"; ctx.textAlign = "center"; 
+            ctx.fillText("在此建造針筒", (t.x+b.x)/2 + 60, (t.y+b.y)/2); 
             ctx.restore();
-        } 
-        
-        if (step === 2) {
-            // Point to the syringe to extend
-            let topSyringe = constraints.find(c => c.type === 'syringe' && ((c.p1===mTop && c.p2===aTop) || (c.p1===aTop && c.p2===mTop)));
-            if(topSyringe) {
-                let cx = (topSyringe.p1.x + topSyringe.p2.x)/2; 
-                let cy = (topSyringe.p1.y + topSyringe.p2.y)/2;
-                let offset = Math.sin(tutAnimFrame * 0.1) * 10;
-                ctx.save(); ctx.translate(cx, cy - 40 + offset);
-                ctx.fillStyle = "#ef4444"; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-10, -20); ctx.lineTo(10, -20); ctx.closePath(); ctx.fill();
-                ctx.fillStyle = "#ef4444"; ctx.font = "bold 14px sans-serif"; ctx.textAlign = "center";
-                ctx.fillText("點擊以伸展！", 0, -25);
+        }
+        else if (tutorialStage === 3) {
+            // Guide for connecting tube
+            let syringe = constraints.find(c => c.type === 'syringe');
+            let grabber = levelObjects.grabber;
+            if(syringe && grabber) {
+                let sC = {x:(syringe.p1.x+syringe.p2.x)/2, y:(syringe.p1.y+syringe.p2.y)/2};
+                let gC = {x:grabber.x, y:grabber.y};
+                ctx.save(); ctx.strokeStyle = "rgba(168, 85, 247, 0.6)"; ctx.lineWidth = 4; ctx.setLineDash([5,5]);
+                ctx.beginPath(); ctx.moveTo(sC.x, sC.y); ctx.bezierCurveTo(sC.x, sC.y-50, gC.x, gC.y-50, gC.x, gC.y); ctx.stroke();
                 ctx.restore();
             }
         }
-        
+    }
+    
+    // --- LEVEL 2 GUIDE ---
+    if (currentLevel === 1 && mode === 'build') {
+        let step = getLevel2Step();
+        let mTop = levelObjects.mastTop;
+        let aTop = levelObjects.armTop;
+        if (step === 1 && mTop && aTop) {
+            ctx.save(); ctx.setLineDash([5, 5]); ctx.strokeStyle = "rgba(59, 130, 246, 0.5)"; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(mTop.x, mTop.y); ctx.lineTo(aTop.x, aTop.y); ctx.stroke();
+            ctx.fillStyle = "#3b82f6"; ctx.font = "bold 14px sans-serif"; ctx.textAlign = "center"; ctx.fillText("在此建造", (mTop.x+aTop.x)/2, (mTop.y+aTop.y)/2 - 20); ctx.setLineDash([]); ctx.restore();
+        } 
+        if (step === 2) {
+            let topSyringe = constraints.find(c => c.type === 'syringe' && ((c.p1===mTop && c.p2===aTop) || (c.p1===aTop && c.p2===mTop)));
+            if(topSyringe) {
+                let cx = (topSyringe.p1.x + topSyringe.p2.x)/2; let cy = (topSyringe.p1.y + topSyringe.p2.y)/2;
+                let offset = Math.sin(tutAnimFrame * 0.1) * 10;
+                ctx.save(); ctx.translate(cx, cy - 40 + offset); ctx.fillStyle = "#ef4444"; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-10, -20); ctx.lineTo(10, -20); ctx.closePath(); ctx.fill();
+                ctx.fillStyle = "#ef4444"; ctx.font = "bold 14px sans-serif"; ctx.textAlign = "center"; ctx.fillText("點擊以伸展！", 0, -25); ctx.restore();
+            }
+        }
         if (step === 3) {
-             let ctrlX = width * 0.2;
-             let cy = height - GROUND_Y - 150;
-             ctx.fillStyle = "rgba(59, 130, 246, 0.5)";
-             ctx.fillRect(ctrlX - 10, cy - 50, 20, 100);
-             ctx.fillStyle = "#3b82f6"; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center";
-             ctx.fillText("建造主控端", ctrlX, cy - 60);
+             let ctrlX = width * 0.2; let topY = height - GROUND_Y - 250; let botY = height - GROUND_Y - 50; let cy = (topY + botY) / 2;
+             ctx.save(); ctx.setLineDash([5, 5]); ctx.strokeStyle = "rgba(59, 130, 246, 0.5)"; ctx.lineWidth = 2; ctx.strokeRect(ctrlX - 30, topY, 60, botY - topY);
+             ctx.fillStyle = "#3b82f6"; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center"; ctx.fillText("建造主控端", ctrlX + 60, cy); ctx.restore();
+        }
+        if (step === 4) {
+            let topSyringe = constraints.find(c => c.type === 'syringe' && c.p1.x > width * 0.3);
+            let botSyringe = constraints.find(c => c.type === 'syringe' && c.p1.x < width * 0.3);
+            if (topSyringe && botSyringe) {
+                let tCx = (topSyringe.p1.x + topSyringe.p2.x)/2; let tCy = (topSyringe.p1.y + topSyringe.p2.y)/2;
+                let bCx = (botSyringe.p1.x + botSyringe.p2.x)/2; let bCy = (botSyringe.p1.y + botSyringe.p2.y)/2;
+                ctx.save(); ctx.beginPath(); ctx.moveTo(bCx, bCy); ctx.bezierCurveTo(bCx, bCy - 50, tCx, tCy - 50, tCx, tCy);
+                ctx.strokeStyle = "rgba(168, 85, 247, 0.6)"; ctx.lineWidth = 4; ctx.setLineDash([10, 10]); ctx.stroke();
+                ctx.fillStyle = "#a855f7"; ctx.font = "bold 14px sans-serif"; ctx.textAlign = "center"; ctx.fillText("連接！", (bCx+tCx)/2, (bCy+tCy)/2 - 30); ctx.restore();
+            }
+        }
+    }
+
+    // --- LEVEL 3 GUIDE ---
+    if (currentLevel === 2 && mode === 'build') {
+        let lb = levelObjects.leftBank; let rb = levelObjects.rightBank; let fl = levelObjects.floatLeft; let fr = levelObjects.floatRight;
+        if (level3State === 0) {
+            if (lb && rb && fl && fr) {
+                ctx.save(); ctx.setLineDash([8, 6]); ctx.strokeStyle = "rgba(59, 130, 246, 0.4)"; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.moveTo(lb.x, lb.y); ctx.lineTo(fl.x, fl.y); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(fl.x, fl.y); ctx.lineTo(fr.x, fr.y); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(fr.x, fr.y); ctx.lineTo(rb.x, rb.y); ctx.stroke();
+                ctx.fillStyle = "#3b82f6"; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center"; ctx.fillText("1. 連接成方形", (fl.x+fr.x)/2, fl.y - 10); ctx.restore();
+            }
+        }
+        if (level3State === 2 || level3State === 3) {
+             if (lb && fl && fr) {
+                ctx.save(); ctx.setLineDash([8, 6]); ctx.strokeStyle = "rgba(16, 185, 129, 0.6)"; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.moveTo(lb.x, lb.y); ctx.lineTo(fr.x, fr.y); ctx.stroke();
+                ctx.fillStyle = "#10b981"; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center"; ctx.fillText("2. 加入對角線", (lb.x+fr.x)/2, (lb.y+fr.y)/2); ctx.restore();
+             }
+        }
+    }
+
+    // --- LEVEL 4 GUIDE: Movable Arm ---
+    if (currentLevel === 3 && mode === 'build') {
+        let bL = levelObjects.l4BaseL; let bR = levelObjects.l4BaseR; let tL = levelObjects.l4TopL; let hinge = levelObjects.l4Hinge;
+        let armEnd = levelObjects.l4ArmEnd; let armTip = levelObjects.l4ArmTip;
+
+        if (level4State === 0) {
+            // Ghost Base
+            ctx.save(); ctx.setLineDash([5, 5]); ctx.strokeStyle = "rgba(59, 130, 246, 0.4)"; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.moveTo(bL.x, bL.y); ctx.lineTo(tL.x, tL.y); ctx.lineTo(hinge.x, hinge.y); ctx.lineTo(bR.x, bR.y); ctx.stroke(); // Top & Sides
+            ctx.beginPath(); ctx.moveTo(bL.x, bL.y); ctx.lineTo(hinge.x, hinge.y); ctx.stroke(); // Diag 1
+            ctx.beginPath(); ctx.moveTo(bR.x, bR.y); ctx.lineTo(tL.x, tL.y); ctx.stroke(); // Diag 2
+            ctx.fillStyle = "#3b82f6"; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("1. 建造穩固基座", (tL.x+hinge.x)/2, tL.y - 15);
+            ctx.restore();
+        } else if (level4State === 1) {
+            // Ghost Arm
+            ctx.save(); ctx.setLineDash([5, 5]); ctx.strokeStyle = "rgba(59, 130, 246, 0.4)"; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.moveTo(hinge.x, hinge.y); ctx.lineTo(armEnd.x, armEnd.y); ctx.lineTo(armTip.x, armTip.y); ctx.lineTo(hinge.x, hinge.y); ctx.stroke();
+            ctx.fillStyle = "#3b82f6"; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("2. 建造手臂", armEnd.x, armEnd.y - 15);
+            ctx.restore();
+        } else if (level4State === 4) {
+            // Ghost Short Syringe (Unextended) - MADE LONGER & ADDED ANCHOR
+            let halfX = tL.x + (armTip.x - tL.x) * 0.6; // Longer line
+            let halfY = tL.y + (armTip.y - tL.y) * 0.6;
+            
+            ctx.save(); ctx.setLineDash([5, 5]); ctx.strokeStyle = "rgba(168, 85, 247, 0.6)"; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(tL.x, tL.y); ctx.lineTo(halfX, halfY); ctx.stroke();
+            
+            // Draw Anchor Point
+            ctx.fillStyle = "#facc15"; ctx.beginPath(); ctx.arc(halfX, halfY, 6, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+
+            ctx.fillStyle = "#a855f7"; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("3. 放置短針筒", halfX, halfY - 15);
+            ctx.restore();
+        } else if (level4State === 5) {
+            // Hint to Click
+            let muscle = constraints.find(c => c.type === 'syringe' && (c.p1===tL || c.p2===tL));
+            if(muscle) {
+                let cx = (muscle.p1.x + muscle.p2.x)/2; let cy = (muscle.p1.y + muscle.p2.y)/2;
+                let offset = Math.sin(tutAnimFrame * 0.1) * 10;
+                ctx.save(); ctx.translate(cx, cy - 30 + offset); ctx.fillStyle = "#ef4444"; 
+                ctx.font = "bold 16px sans-serif"; ctx.textAlign = "center"; ctx.fillText("👇 點擊伸展", 0, 0); ctx.restore();
+            }
+        } else if (level4State === 6) {
+            // Hint to Drag
+            let muscle = constraints.find(c => c.type === 'syringe' && (c.p1===tL || c.p2===tL));
+            if(muscle) {
+                let looseEnd = (muscle.p1 === tL) ? muscle.p2 : muscle.p1;
+                // Draw arrow from looseEnd to ArmTip
+                ctx.save(); ctx.strokeStyle = "#10b981"; ctx.lineWidth = 3; ctx.setLineDash([5, 5]);
+                ctx.beginPath(); ctx.moveTo(looseEnd.x, looseEnd.y); ctx.lineTo(armTip.x, armTip.y); ctx.stroke();
+                
+                ctx.fillStyle = "#10b981"; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center";
+                ctx.fillText("拖曳連接至手臂", (looseEnd.x+armTip.x)/2, (looseEnd.y+armTip.y)/2 - 10);
+                ctx.restore();
+            }
+        } else if (level4State >= 6 && level4State <= 9) {
+            // EXTENSION CHECK GUIDE: If retracted, warn user
+            let muscle = constraints.find(c => c.type === 'syringe' && (c.p1===tL || c.p2===tL));
+            if (muscle) {
+                let isExt = muscle.syringeProps.currentLen > muscle.syringeProps.maxLen * 0.9;
+                if (!isExt) {
+                    let cx = (muscle.p1.x + muscle.p2.x)/2; let cy = (muscle.p1.y + muscle.p2.y)/2;
+                    let offset = Math.sin(tutAnimFrame * 0.1) * 10;
+                    ctx.save(); ctx.translate(cx, cy - 40 + offset); ctx.fillStyle = "#ef4444"; 
+                    ctx.font = "bold 14px sans-serif"; ctx.textAlign = "center"; 
+                    ctx.fillText("⚠️ 必須伸展！", 0, 0); ctx.restore();
+                }
+            }
+
+            if (level4State === 7) {
+                 // MODIFIED: Guide from Base Right to Arm End
+                 ctx.save(); ctx.setLineDash([5, 5]); ctx.strokeStyle = "rgba(59, 130, 246, 0.5)"; ctx.lineWidth = 4;
+                 ctx.beginPath(); ctx.moveTo(bR.x, bR.y); ctx.lineTo(armEnd.x, armEnd.y); ctx.stroke();
+                 ctx.fillStyle = "#3b82f6"; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center"; 
+                 ctx.fillText("建造動力缸", (bR.x + armEnd.x)/2, (bR.y + armEnd.y)/2 - 15); 
+                 ctx.restore();
+            } else if (level4State === 8) {
+                 // Connect Tubes
+                 let muscle = constraints.find(c => c.type === 'syringe' && (c.p1===tL || c.p2===tL));
+                 let ctrl = constraints.find(c => c.type === 'syringe' && c !== muscle);
+                 if(muscle && ctrl) {
+                     let mC = {x:(muscle.p1.x+muscle.p2.x)/2, y:(muscle.p1.y+muscle.p2.y)/2};
+                     let cC = {x:(ctrl.p1.x+ctrl.p2.x)/2, y:(ctrl.p1.y+ctrl.p2.y)/2};
+                     ctx.save(); ctx.strokeStyle = "rgba(168, 85, 247, 0.6)"; ctx.lineWidth = 4; ctx.setLineDash([5,5]);
+                     ctx.beginPath(); ctx.moveTo(cC.x, cC.y); ctx.bezierCurveTo(cC.x, cC.y-50, mC.x, mC.y+50, mC.x, mC.y); ctx.stroke();
+                     ctx.restore();
+                 }
+            }
+        }
+    }
+}
+
+function drawTestModeHints() {
+    if (currentLevel === 0 && mode === 'play' && !hasWon) {
+        tutAnimFrame++;
+        // Manual syringe check
+        let m = constraints.find(c => c.type === 'syringe');
+        if(m) {
+            let cx = (m.p1.x + m.p2.x)/2; let cy = (m.p1.y + m.p2.y)/2;
+            let offset = Math.sin(tutAnimFrame * 0.1) * 15;
+            ctx.save(); ctx.translate(cx + 40, cy); ctx.fillStyle = "rgba(239, 68, 68, 0.8)"; ctx.font = "24px sans-serif"; ctx.fillText("👇", 0, offset); ctx.restore();
+        }
+    }
+    if (currentLevel === 1 && mode === 'play' && !hasWon) {
+        let ctrl = constraints.find(c => c.type === 'syringe' && c.p1.x < width * 0.3);
+        if (ctrl) {
+            tutAnimFrame++;
+            let cx = (ctrl.p1.x + ctrl.p2.x)/2; let cy = (ctrl.p1.y + ctrl.p2.y)/2;
+            let offset = Math.sin(tutAnimFrame * 0.1) * 10;
+            ctx.save(); ctx.translate(cx + 30, cy); ctx.fillStyle = "rgba(239, 68, 68, 0.8)"; ctx.font = "24px sans-serif"; ctx.fillText("↕️", 0, 0); ctx.restore();
         }
     }
 }
@@ -1412,8 +1983,42 @@ function drawTutorialGuide() {
 // --- RENDER ---
 function loop() {
     ctx.clearRect(0, 0, width, height); 
+    
+    // Level 1: Ensure tutorial state updates when tool changes
+    if (currentLevel === 0 && !hasWon) {
+        updateTutorialOverlay();
+        if(mode === 'play' && tutorialStage === 4) { tutorialStage = 5; }
+    }
+
+    // Level 3 Auto-Advance Logic
+    if (currentLevel === 2 && mode === 'build' && level3State === 0) {
+        let structState = checkLevel3Structure();
+        if (structState === 1) { // 1 = Square
+            level3State = 1;
+            updateTutorialOverlay();
+        }
+    }
+
+    // Level 4 Auto-Advance Logic
+    if (currentLevel === 3 && mode === 'build') {
+        let structState = checkLevel4Structure();
+        // Auto-advance Step 1 -> 2
+        if (level4State === 0 && structState >= 1) {
+            level4State = 1;
+            updateTutorialOverlay();
+        }
+        // Auto-advance Step 2 -> 3 (Test)
+        if (level4State === 1 && structState >= 2) {
+            level4State = 2;
+            updateTutorialOverlay();
+        }
+    }
+
     drawEnvironment();
-    if (mode === 'play') updatePhysics();
+    if (mode === 'play') {
+        updatePhysics();
+        drawTestModeHints();
+    }
     ctx.lineWidth = 4; ctx.lineCap = 'round';
     tubes.forEach(t => {
         let s = t.source; let tg = t.target;
@@ -1434,60 +2039,74 @@ function loop() {
         drawTutorialGuide(); 
     }
     
-    // Win Progress Circular Bar
-    if(winTimer > 0 && !hasWon) {
-        let pct = winTimer / WIN_FRAMES;
-        let bx = (currentLevel === 1 && levelObjects.armTip) ? levelObjects.armTip.x : loadBox.x + loadBox.w/2;
-        let by = (currentLevel === 1 && levelObjects.armTip) ? levelObjects.armTip.y - 40 : loadBox.y - 40;
+    // Win Progress Circular Bar (Level 4 & 5 - Fixed Position)
+    // Now enabled for Level 4 (Index 3) as well
+    if((currentLevel === 3 || currentLevel === 4) && winTimer > 0 && !hasWon) {
+        let pct = winTimer / ((currentLevel === 3) ? 180 : WIN_FRAMES); // 3s for L4, 3s for L5
+        let bx = width - 60; 
+        let by = 220; 
         
+        ctx.save();
         ctx.beginPath();
-        ctx.arc(bx, by, 15, 0, Math.PI*2);
-        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        ctx.arc(bx, by, 25, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
         ctx.fill();
-        
-        ctx.beginPath();
-        ctx.arc(bx, by, 15, -Math.PI/2, -Math.PI/2 + (Math.PI*2 * pct));
-        ctx.strokeStyle = '#10b981';
+        ctx.strokeStyle = '#cbd5e1';
         ctx.lineWidth = 4;
         ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.arc(bx, by, 25, -Math.PI/2, -Math.PI/2 + (Math.PI*2 * pct));
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 6;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        
+        ctx.fillStyle = '#10b981';
+        ctx.font = '20px FontAwesome';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('\uf00c', bx, by); 
+        
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillText("HOLDING", bx, by + 45);
+        ctx.restore();
     }
     
     feedbackTexts = feedbackTexts.filter(ft => ft.life > 0);
     feedbackTexts.forEach(ft => { ft.y -= 1; ft.life--; ctx.globalAlpha = ft.life / 30; ctx.font = 'bold 16px sans-serif'; ctx.fillStyle = ft.color; ctx.fillText(ft.text, ft.x, ft.y); ctx.globalAlpha = 1.0; });
     
     if(currentLevel === 0 && !hasWon) {
-        if(tubes.length > 0 && tutorialStage === 0) { tutorialStage = 1; updateTutorialOverlay(); }
-        if(mode === 'play' && tutorialStage === 1) { tutorialStage = 2; updateTutorialOverlay(); }
+        // Level 1 logic handled in updateTutorialOverlay + mouseup
+        if(mode === 'play' && tutorialStage === 4) { tutorialStage = 5; updateTutorialOverlay(); }
     }
     
-    if(currentLevel === 1 && !hasWon) {
-        updateTutorialOverlay(); // Continuous check for Step logic
-    }
+    if(currentLevel === 1 && !hasWon) updateTutorialOverlay(); 
+    if(currentLevel === 2 && !hasWon) updateTutorialOverlay();
+    if(currentLevel === 3 && !hasWon) updateTutorialOverlay();
     
     requestAnimationFrame(loop);
 }
 
 function drawEnvironment() {
     ctx.fillStyle = '#334155'; ctx.fillRect(0, height - GROUND_Y, width, GROUND_Y);
-    let winY = height * WIN_HEIGHT_RATIO;
     
-    // Target Line logic for Level 2 & 3
-    if(currentLevel > 0) {
-        if(currentLevel === 1) winY = levelObjects.targetHeight; 
-        
+    // Draw Target Line
+    if(currentLevel === 1 || currentLevel === 4) {
+        let winY = (currentLevel === 1) ? levelObjects.targetHeight : (height * 0.65); // Changed to lower height
         ctx.strokeStyle = '#10b981'; ctx.lineWidth = 2; ctx.setLineDash([10, 10]);
         ctx.beginPath(); ctx.moveTo(0, winY); ctx.lineTo(width, winY); ctx.stroke(); ctx.setLineDash([]);
         ctx.fillStyle = '#10b981'; ctx.font = '12px sans-serif'; ctx.textAlign='right'; 
         ctx.fillText("目標高度", width - 20, winY - 10); 
     }
     
-    if(currentLevel !== 1) { 
+    if(currentLevel !== 1 && currentLevel !== 3) { 
         ctx.fillStyle = '#64748b'; ctx.fillRect(loadBox.x, loadBox.y, loadBox.w, loadBox.h);
         ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 2; ctx.strokeRect(loadBox.x, loadBox.y, loadBox.w, loadBox.h);
         ctx.fillStyle = '#fff'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign='left'; ctx.fillText(levelConfig.boxMass + "kg", loadBox.x + 5, loadBox.y + 35);
     }
     
-    // Level Hint
     ctx.fillStyle = '#475569'; ctx.font = '14px sans-serif'; ctx.textAlign='center';
     ctx.fillText(`${levelConfig.hint}`, width/2, 30);
 }
@@ -1495,7 +2114,8 @@ function drawEnvironment() {
 function drawPoint(p) {
     if (mode === 'play') return; 
     ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
-    ctx.fillStyle = p.fixed ? '#ef4444' : '#fff';
+    // Modified color logic for temp fixed points
+    ctx.fillStyle = (p.fixed || p.tempFixed) ? '#ef4444' : '#fff';
     if(hoverEntity && hoverEntity.obj === p) ctx.fillStyle = '#3b82f6';
     if(selectedTool === 'select' && dragEntity === p) ctx.fillStyle = '#10b981';
     ctx.fill(); ctx.strokeStyle = '#475569'; ctx.lineWidth = 1; ctx.stroke();
@@ -1518,16 +2138,22 @@ function drawEditorOverlay() {
         let s = hoverEntity.obj;
         let cx = (s.p1.x + s.p2.x)/2; let cy = (s.p1.y + s.p2.y)/2 - 30;
         if(Math.abs(mouse.x - cx) < 25 && Math.abs(mouse.y - cy) < 25) {
-            hoverToggle = s; ctx.fillStyle = '#e0f2fe'; canvas.style.cursor = 'pointer';
+            // Check if connected to grabber
+            if (!isSyringeConnectedToGrabber(s)) {
+                hoverToggle = s; ctx.fillStyle = '#e0f2fe'; canvas.style.cursor = 'pointer';
+            } else {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; // Just hover effect, no toggle
+            }
         } else { ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; }
         
-        ctx.strokeStyle = '#475569'; ctx.lineWidth = 1;
-        ctx.fillRect(cx - 15, cy - 15, 30, 30); ctx.strokeRect(cx - 15, cy - 15, 30, 30);
-        ctx.fillStyle = '#3b82f6'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = 'bold 16px sans-serif'; 
-        ctx.fillText("⇄", cx, cy + 1);
-        
-        ctx.fillStyle = '#1e293b'; ctx.font = '10px sans-serif';
-        ctx.fillText("切換狀態", cx, cy - 20);
+        if (hoverToggle) {
+            ctx.strokeStyle = '#475569'; ctx.lineWidth = 1;
+            ctx.fillRect(cx - 15, cy - 15, 30, 30); ctx.strokeRect(cx - 15, cy - 15, 30, 30);
+            ctx.fillStyle = '#3b82f6'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = 'bold 16px sans-serif'; 
+            ctx.fillText("⇄", cx, cy + 1);
+            ctx.fillStyle = '#1e293b'; ctx.font = '10px sans-serif';
+            ctx.fillText("切換狀態", cx, cy - 20);
+        }
     }
     if(selectedTool === 'tube' && connectSource) {
         let s = connectSource;
@@ -1557,6 +2183,25 @@ function drawEditorOverlay() {
 canvas.addEventListener('mousemove', e => {
     let rect = canvas.getBoundingClientRect(); mouse.x = e.clientX - rect.left; mouse.y = e.clientY - rect.top;
     hoverEntity = findEntityAt(mouse.x, mouse.y);
+    
+    // Logic moved here to ensure mousedown sees it
+    if (mode === 'build') {
+        hoverToggle = null;
+        if(hoverEntity && hoverEntity.type === 'stick' && hoverEntity.obj.type === 'syringe') {
+            let s = hoverEntity.obj;
+            let cx = (s.p1.x + s.p2.x)/2; let cy = (s.p1.y + s.p2.y)/2 - 30;
+            if(Math.abs(mouse.x - cx) < 25 && Math.abs(mouse.y - cy) < 25) {
+                // Check if connected to grabber
+                if (!isSyringeConnectedToGrabber(s)) {
+                    hoverToggle = s; 
+                    canvas.style.cursor = 'pointer';
+                }
+            } else {
+                canvas.style.cursor = 'default';
+            }
+        }
+    }
+
     let status = mode === 'play' ? "測試模式" : `工具: ${selectedTool ? selectedTool.toUpperCase() : '無'}`;
     if(connectSource) status = "選取目標 (放開以連接)";
     else if(hoverEntity) status += ` | 懸停: ${hoverEntity.type.toUpperCase()}`;
@@ -1572,14 +2217,17 @@ canvas.addEventListener('mousedown', e => {
     mouse.down = true;
     if(mode === 'play') { if(hoverEntity && hoverEntity.type === 'stick' && hoverEntity.obj.type === 'syringe') dragEntity = hoverEntity.obj; return; }
     if(hoverToggle) {
-        let s = hoverToggle;
-        let cur = Math.hypot(s.p2.x - s.p1.x, s.p2.y - s.p1.y);
-        let isExt = Math.abs(cur - s.syringeProps.maxLen) < 10;
-        let tLen = isExt ? s.syringeProps.minLen : s.syringeProps.maxLen;
-        s.syringeProps.currentLen = tLen;
-        let ang = Math.atan2(s.p2.y - s.p1.y, s.p2.x - s.p1.x);
-        if (!s.p2.fixed) { s.p2.x = s.p1.x + Math.cos(ang)*tLen; s.p2.y = s.p1.y + Math.sin(ang)*tLen; s.p2.buildX=s.p2.x; s.p2.buildY=s.p2.y; }
-        else { s.p1.x = s.p2.x - Math.cos(ang)*tLen; s.p1.y = s.p2.y - Math.sin(ang)*tLen; s.p1.buildX=s.p1.x; s.p1.buildY=s.p1.y; }
+        toggleSyringe(hoverToggle);
+        
+        // Level 4 State advancement
+        if (currentLevel === 3 && level4State === 5) {
+            let tL = levelObjects.l4TopL;
+            // Check if clicked syringe is the one connected to TopL
+            if (hoverToggle.p1 === tL || hoverToggle.p2 === tL) {
+                level4State = 6;
+                updateTutorialOverlay();
+            }
+        }
         return;
     }
     if(selectedTool === 'eraser' && hoverEntity) { deleteEntity(hoverEntity); saveState(); return; }
@@ -1603,6 +2251,17 @@ canvas.addEventListener('mouseup', e => {
     if(selectedTool === 'select' && dragEntity) {
         if(hoverEntity && (hoverEntity.type === 'point' || hoverEntity.type === 'grabber') && hoverEntity.obj !== dragEntity) { mergePoints(hoverEntity.obj, dragEntity); saveState(); }
         else { saveState(); }
+        
+        // Level 4 State advancement: Check if syringe connected
+        if (currentLevel === 3 && level4State === 6) {
+            let armTip = levelObjects.l4ArmTip;
+            let muscle = constraints.find(c => c.type === 'syringe' && (c.p1===levelObjects.l4TopL || c.p2===levelObjects.l4TopL));
+            if(muscle && (muscle.p1===armTip || muscle.p2===armTip)) {
+                level4State = 7;
+                updateTutorialOverlay();
+            }
+        }
+        
         dragEntity = null; return;
     }
     dragEntity = null; 
@@ -1612,9 +2271,45 @@ canvas.addEventListener('mouseup', e => {
         if(valid) {
             let exists = tubes.some(t => (t.source===connectSource && t.target===target) || (t.target===connectSource && t.source===target));
             if(!exists) {
+                // AUTO-SYNC LOGIC
+                let sourceType = (connectSource instanceof Stick && connectSource.type==='syringe') ? 'syringe' : 'other';
+                let targetType = (target instanceof Stick && target.type==='syringe') ? 'syringe' : 'other';
+                if (sourceType === 'syringe' && targetType === 'syringe') {
+                    let sourceExt = connectSource.syringeProps.currentLen > connectSource.syringeProps.maxLen * 0.9;
+                    let targetExt = target.syringeProps.currentLen > target.syringeProps.maxLen * 0.9;
+                    if (sourceExt === targetExt) {
+                        let newLen = !targetExt ? target.syringeProps.maxLen : target.syringeProps.minLen;
+                        applySyringeLength(target, newLen);
+                    }
+                }
                 tubes.push({ source: connectSource, target: target, sourceType: (connectSource instanceof Stick)?'syringe':'grabber', targetType: hoverEntity.type });
-                if(target instanceof Stick && target.type === 'syringe') target.syringeProps.currentLen = target.syringeProps.minLen;
+                
+                // FORCE EXTEND SYRINGE IF CONNECTED TO GRABBER
+                if (sourceType === 'syringe' && targetType === 'grabber') {
+                    applySyringeLength(connectSource, connectSource.syringeProps.maxLen);
+                } else if (targetType === 'syringe' && sourceType === 'grabber') {
+                    applySyringeLength(target, target.syringeProps.maxLen);
+                }
+
                 saveState();
+                
+                // Level 1 Auto Advance
+                if(currentLevel === 0 && tutorialStage === 3) {
+                    tutorialStage = 4;
+                    updateTutorialOverlay();
+                }
+
+                // Level 4 Auto-Advance (Step 8 -> 9)
+                if (currentLevel === 3 && level4State === 8) {
+                    // Check if we connected the correct parts
+                    let muscle = constraints.find(c => c.type === 'syringe' && (c.p1===levelObjects.l4TopL || c.p2===levelObjects.l4TopL));
+                    let ctrl = constraints.find(c => c.type === 'syringe' && c !== muscle);
+                    
+                    if (muscle && ctrl && (connectSource === muscle || connectSource === ctrl) && (target === muscle || target === ctrl)) {
+                        level4State = 9;
+                        updateTutorialOverlay();
+                    }
+                }
             }
         } else {
             let dist = Math.hypot(mouse.x - connectStartPos.x, mouse.y - connectStartPos.y);
@@ -1630,7 +2325,36 @@ canvas.addEventListener('mouseup', e => {
         let endP = null;
         if(hoverEntity && (hoverEntity.type === 'point' || hoverEntity.type === 'grabber') && hoverEntity.obj !== buildingStartPoint) endP = hoverEntity.obj;
         else if(!hoverEntity) { endP = new Point(mouse.x, mouse.y); points.push(endP); }
-        if(endP) { constraints.push(new Stick(buildingStartPoint, endP, null, selectedTool)); saveState(); }
+        if(endP) { 
+            let newStick = new Stick(buildingStartPoint, endP, null, selectedTool);
+            constraints.push(newStick); 
+            saveState(); 
+            
+            // Level 1 Auto Advance
+            if(currentLevel === 0 && tutorialStage === 1 && selectedTool === 'syringe') {
+                if((buildingStartPoint === levelObjects.l1pTop && endP === levelObjects.l1pBot) || (buildingStartPoint === levelObjects.l1pBot && endP === levelObjects.l1pTop)) {
+                    tutorialStage = 2;
+                    updateTutorialOverlay();
+                }
+            }
+
+            // Level 4 Check for short syringe creation
+            if (currentLevel === 3 && level4State === 4 && selectedTool === 'syringe') {
+                if (buildingStartPoint === levelObjects.l4TopL || endP === levelObjects.l4TopL) {
+                    level4State = 5;
+                    updateTutorialOverlay();
+                }
+            }
+            // Level 4 Auto-Advance Step 7 (Controller/LiftCyl) -> 8
+            if (currentLevel === 3 && level4State === 7) {
+                 // Detect if we have a syringe connected to BaseRight (l4BaseR)
+                 let liftCyl = constraints.find(c => c.type === 'syringe' && (c.p1===levelObjects.l4BaseR || c.p2===levelObjects.l4BaseR));
+                 if (liftCyl) {
+                     level4State = 8;
+                     updateTutorialOverlay();
+                 }
+            }
+        }
         buildingStartPoint = null;
     }
 });
@@ -1641,8 +2365,174 @@ function deleteEntity(ent) {
     else if (ent.type === 'stick') { constraints = constraints.filter(c => c !== ent.obj); tubes = tubes.filter(t => t.source !== ent.obj && t.target !== ent.obj); }
 }
 
-window.setMode = (m) => { mode = m; document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active')); if(m === 'build') { document.getElementById('btn-build').classList.add('active'); points.forEach(p => p.reset()); resetPositions(); if(!selectedTool) window.selectTool('beam'); } else { document.getElementById('btn-play').classList.add('active'); connectSource = null; buildingStartPoint = null; } updateUI(); };
-window.selectTool = (t) => { if(mode !== 'build') setMode('build'); selectedTool = t; connectSource = null; buildingStartPoint = null; document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('selected')); document.getElementById('tool-'+t).classList.add('selected'); updateUI(); };
+function showValidationMsg(msg) {
+    feedbackTexts.push({ x: width / 2, y: height / 2, text: msg, life: 90, color: '#ef4444' });
+    const overlay = document.getElementById('tutorial-overlay');
+    overlay.style.animation = 'none';
+    overlay.offsetHeight; /* trigger reflow */
+    overlay.style.animation = 'toolBounce 0.5s';
+}
+
+function checkLevel3Structure() {
+    // Return: 0=Nothing, 1=Square(Unstable), 2=Triangulated(Stable)
+    let lb = levelObjects.leftBank; let rb = levelObjects.rightBank; let fl = levelObjects.floatLeft; let fr = levelObjects.floatRight;
+    if(!lb || !rb || !fl || !fr) return 0;
+    let hasLeft = constraints.some(c => (c.p1===lb && c.p2===fl) || (c.p1===fl && c.p2===lb));
+    let hasTop = constraints.some(c => (c.p1===fl && c.p2===fr) || (c.p1===fr && c.p2===fl));
+    let hasRight = constraints.some(c => (c.p1===fr && c.p2===rb) || (c.p1===rb && c.p2===fr));
+    let isSquare = hasLeft && hasTop && hasRight;
+    if (!isSquare) return 0;
+    let hasDiag1 = constraints.some(c => (c.p1===lb && c.p2===fr) || (c.p1===fr && c.p2===lb));
+    let hasDiag2 = constraints.some(c => (c.p1===rb && c.p2===fl) || (c.p1===fl && c.p2===rb));
+    if (hasDiag1 || hasDiag2) return 2;
+    return 1;
+}
+
+function checkLevel4Structure() {
+    // 0: Base Frame, 1: Arm Frame, 2: Syringe
+    let bL = levelObjects.l4BaseL; let bR = levelObjects.l4BaseR; let tL = levelObjects.l4TopL; let hinge = levelObjects.l4Hinge;
+    let armEnd = levelObjects.l4ArmEnd; let armTip = levelObjects.l4ArmTip;
+    if(!bL || !bR || !tL || !hinge) return 0;
+
+    // Check Base (Rectangle + Diag)
+    let hasBaseBox = 
+        constraints.some(c => c.p1===bL && c.p2===tL || c.p1===tL && c.p2===bL) && // Left
+        constraints.some(c => c.p1===bR && c.p2===hinge || c.p1===hinge && c.p2===bR) && // Right
+        constraints.some(c => c.p1===tL && c.p2===hinge || c.p1===hinge && c.p2===tL); // Top
+    if (!hasBaseBox) return 0;
+
+    // Check Diagonals (Need at least one to be stable-ish, usually both for this level's requirement)
+    let hasDiag = constraints.some(c => c.p1===bL && c.p2===hinge || c.p1===hinge && c.p2===bL) || 
+                  constraints.some(c => c.p1===bR && c.p2===tL || c.p1===tL && c.p2===bR);
+    
+    if (!hasDiag) return 0; // Strict base check
+
+    let hasArm = 
+        constraints.some(c => c.p1===hinge && c.p2===armEnd || c.p1===armEnd && c.p2===hinge) && 
+        constraints.some(c => c.p1===armTip && c.p2===armEnd || c.p1===armEnd && c.p2===armTip) &&
+        constraints.some(c => c.p1===hinge && c.p2===armTip || c.p1===armTip && c.p2===hinge); // Triangle arm
+    
+    if (!hasArm) return 1;
+
+    let hasSyringe = constraints.some(c => c.type === 'syringe' && (c.p1===tL || c.p2===tL));
+    if (!hasSyringe) return 2;
+
+    return 3;
+}
+
+window.setMode = (m) => { 
+    // VALIDATION BLOCK
+    if (m === 'play') {
+        if (currentLevel === 0) {
+            if (tubes.length === 0) { showValidationMsg("請先使用油管連接針筒與爪子！"); return; }
+        } else if (currentLevel === 1) {
+            let step = getLevel2Step();
+            if (step < 5) {
+                if (step === 1) showValidationMsg("請先建造上方的主動針筒！");
+                else if (step === 2) showValidationMsg("請先點擊伸展上方的針筒！(這很重要)");
+                else if (step === 3) showValidationMsg("請建造左側的控制針筒！");
+                else if (step === 4) showValidationMsg("請連接兩個針筒的油管！");
+                return;
+            }
+        } else if (currentLevel === 2) {
+            let structState = checkLevel3Structure();
+            if (level3State === 0) {
+                if (structState === 0) { showValidationMsg("請先完成方形框架的建造！"); return; }
+                level3State = 1; 
+            }
+            if (level3State === 2) {
+                if (structState < 2) { showValidationMsg("結構不穩定！請加入對角線橫樑。"); return; }
+                level3State = 3;
+            }
+        } else if (currentLevel === 3) {
+            let structState = checkLevel4Structure();
+            if (level4State === 0) {
+                if (structState < 1) { showValidationMsg("請先建造基座框架！"); return; }
+                level4State = 1; // Advance to build arm
+            }
+            if (level4State === 1) {
+                if (structState < 2) { showValidationMsg("請先建造手臂結構！"); return; }
+                level4State = 2; // Ready to fail gravity test
+            }
+            // State 2: Gravity Test (Must run)
+            
+            if (level4State === 3 || level4State === 4) {
+                if (structState < 3) { showValidationMsg("請建造液壓肌肉！"); return; }
+            }
+            
+            if (level4State === 5) {
+                showValidationMsg("請先拖曳連接液壓肌肉至手臂！"); return; 
+            }
+            
+            if (level4State === 7) {
+                if (constraints.filter(c => c.type === 'syringe').length < 2) { showValidationMsg("請建造動力缸！"); return; }
+                level4State = 8;
+            }
+            
+            if (level4State === 8) {
+                if (tubes.length === 0) { showValidationMsg("請連接油管！"); return; }
+                // Ensure muscle is extended before start? Actually if connected it's fine.
+                // But guidance says extend first.
+                level4State = 9;
+            }
+
+            // Check muscle extension (persistent check)
+            let muscle = constraints.find(c => c.type === 'syringe' && (c.p1===levelObjects.l4TopL || c.p2===levelObjects.l4TopL));
+            if (muscle) {
+                 let isExt = muscle.syringeProps.currentLen > muscle.syringeProps.maxLen * 0.9;
+                 if (!isExt) { showValidationMsg("測試前請先伸展上方液壓缸！"); return; }
+            }
+        }
+    }
+
+    mode = m; 
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active')); 
+    if(m === 'build') { 
+        document.getElementById('btn-build').classList.add('active'); 
+        points.forEach(p => p.reset()); 
+        resetPositions(); 
+        if(!selectedTool) window.selectTool('beam'); 
+        
+        // Lock Level 3 float points
+        if(currentLevel === 2) {
+             if(levelObjects.floatLeft) levelObjects.floatLeft.tempFixed = true;
+             if(levelObjects.floatRight) levelObjects.floatRight.tempFixed = true;
+        }
+        // Lock Level 4 points (Start rigid for easier building)
+        if(currentLevel === 3) {
+             if(levelObjects.l4ArmEnd) levelObjects.l4ArmEnd.tempFixed = true;
+             if(levelObjects.l4ArmTip) levelObjects.l4ArmTip.tempFixed = true;
+        }
+
+    } else { 
+        document.getElementById('btn-play').classList.add('active'); 
+        connectSource = null; 
+        buildingStartPoint = null; 
+        
+        // Unlock Level 3 float points for simulation
+        if(currentLevel === 2) {
+             if(levelObjects.floatLeft) levelObjects.floatLeft.tempFixed = false;
+             if(levelObjects.floatRight) levelObjects.floatRight.tempFixed = false;
+        }
+        // Unlock Level 4 points
+        if(currentLevel === 3) {
+             if(levelObjects.l4ArmEnd) levelObjects.l4ArmEnd.tempFixed = false;
+             if(levelObjects.l4ArmTip) levelObjects.l4ArmTip.tempFixed = false;
+        }
+    } 
+    updateUI(); 
+};
+window.selectTool = (t) => { 
+    if(mode !== 'build') setMode('build'); 
+    selectedTool = t; 
+    connectSource = null; 
+    buildingStartPoint = null; 
+    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('selected')); 
+    document.getElementById('tool-'+t).classList.add('selected'); 
+    updateUI(); 
+    // ADDED: Force update overlay to catch tool change immediately
+    updateTutorialOverlay();
+};
 window.updateToolSettings = () => toolSettings.size = parseInt(document.getElementById('syringe-size').value);
 function updateUI() { document.getElementById('props-panel').classList.toggle('visible', mode === 'build'); }
 window.openTutorial = () => { document.getElementById('tutorial-modal').classList.add('active'); showStep(1); };
@@ -1650,14 +2540,122 @@ window.closeTutorial = () => document.getElementById('tutorial-modal').classList
 window.showStep = (step) => { currentStep = step; document.querySelectorAll('.tut-step').forEach(s => s.classList.remove('active')); document.getElementById('step-' + step).classList.add('active'); document.querySelector('.btn-prev').style.visibility = step === 1 ? 'hidden' : 'visible'; document.querySelector('.btn-next').style.display = step === TOTAL_STEPS ? 'none' : 'block'; document.querySelector('.btn-finish').style.display = step === TOTAL_STEPS ? 'block' : 'none'; };
 window.nextStep = () => { if(currentStep < TOTAL_STEPS) showStep(currentStep+1); };
 window.prevStep = () => { if(currentStep > 1) showStep(currentStep-1); };
+
+window.showLogin = () => {
+    document.getElementById('login-modal').classList.remove('hidden');
+    document.getElementById('studentInfo').focus();
+};
+
+window.hideLogin = () => {
+    document.getElementById('login-modal').classList.add('hidden');
+};
+
+window.confirmLogin = () => {
+    const info = document.getElementById('studentInfo').value.trim();
+    if (info) {
+        playerName = info;
+        hideLogin();
+        actualStart();
+    } else {
+        alert('請輸入班別學號！');
+    }
+};
+
 window.startGame = () => { 
+    if (!playerName) {
+        showLogin();
+    } else {
+        actualStart();
+    }
+};
+
+function actualStart() {
     document.getElementById('start-screen').style.display = 'none'; 
     openTutorial(); 
     gameActive = true; 
     gameStartTime = Date.now();
+}
+
+window.restartAsSameStudent = () => {
+    document.getElementById('win-modal').classList.remove('active');
+    // Reset game state but keep playerName
+    currentLevel = 0;
+    resetGame();
+    actualStart();
 };
+
+window.restartAsNewStudent = () => {
+    document.getElementById('win-modal').classList.remove('active');
+    playerName = '';
+    document.getElementById('studentInfo').value = '';
+    currentLevel = 0;
+    resetGame();
+    document.getElementById('start-screen').style.display = 'flex';
+    showLogin();
+};
+
+function resetGame() {
+    points = [];
+    constraints = [];
+    tubes = [];
+    grabbers = [];
+    historyStack = [];
+    historyIndex = -1;
+    hasWon = false;
+    winTimer = 0;
+    winDelay = 0;
+    currentLevel = 0;
+    loadLevel(0);
+}
+
 window.undo = undo; window.redo = redo;
+
+// --- TOUCH EVENT ADAPTER ---
+function initTouch() {
+    canvas.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        const touch = e.changedTouches[0];
+        const rect = canvas.getBoundingClientRect();
+        
+        // 1. Update Position directly (sync)
+        mouse.x = touch.clientX - rect.left;
+        mouse.y = touch.clientY - rect.top;
+        mouse.down = true;
+
+        // 2. Update Hover Entity (sync)
+        hoverEntity = findEntityAt(mouse.x, mouse.y);
+
+        // 3. Update Hover Toggle (sync fix for touch)
+        hoverToggle = null;
+        if(mode === 'build' && hoverEntity && hoverEntity.type === 'stick' && hoverEntity.obj.type === 'syringe') {
+            let s = hoverEntity.obj;
+            let cx = (s.p1.x + s.p2.x)/2; let cy = (s.p1.y + s.p2.y)/2 - 30;
+            if(Math.abs(mouse.x - cx) < 25 && Math.abs(mouse.y - cy) < 25) {
+                hoverToggle = s;
+            }
+        }
+
+        // 4. Dispatch events for compatibility with existing listeners
+        canvas.dispatchEvent(new MouseEvent('mousemove', { clientX: touch.clientX, clientY: touch.clientY }));
+        canvas.dispatchEvent(new MouseEvent('mousedown', { clientX: touch.clientX, clientY: touch.clientY, button: 0 }));
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', function(e) {
+        e.preventDefault();
+        const touch = e.changedTouches[0];
+        canvas.dispatchEvent(new MouseEvent('mousemove', { clientX: touch.clientX, clientY: touch.clientY }));
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        const touch = e.changedTouches[0];
+        canvas.dispatchEvent(new MouseEvent('mouseup', { clientX: touch.clientX, clientY: touch.clientY }));
+    }, { passive: false });
+}
+
 init();
+// Call touch init after canvas is ready (init is called at end of script)
+initTouch();
 </script>
 </body>
 </html>

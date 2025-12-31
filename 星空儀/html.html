@@ -686,10 +686,11 @@
                 </div>
 
                 <div id="drawing-area-wrapper">
-                    <canvas id="drawing-canvas" width="512" height="512" style="width: 400px; height: 400px; background: #000;"></canvas>
+                    <canvas id="guide-canvas" width="512" height="512" style="width: 400px; height: 400px; background: #000; position: absolute; top: 0; left: 0; pointer-events: none;"></canvas>
+                    <canvas id="drawing-canvas" width="512" height="512" style="width: 400px; height: 400px; background: transparent; position: relative; cursor: crosshair;"></canvas>
                 </div>
                 
-                <p style="color: #aaa; margin-top: 15px; font-size: 14px;">請思考關卡要求的星座，畫出對應的星圖</p>
+                <p style="color: #aaa; margin-top: 15px; font-size: 14px;">請參考左側星圖，在<b>圓形基準區域</b>內繪製連線</p>
                 
                 <div style="margin-top: 20px;">
                     <button class="tool-btn" id="btn-modal-done" style="width: 240px; height: 55px; background: #28a745; color: white; flex-direction: row; gap: 12px; font-size: 18px;">
@@ -1014,7 +1015,12 @@
             // Clear Entities
             state.mice.forEach(m => scene.remove(m)); state.mice = [];
             state.ghosts.forEach(g => scene.remove(g)); state.ghosts = [];
-            if(currentDoorObj) { scene.remove(currentDoorObj.group); currentDoorObj = null; }
+            
+            // Comprehensive Door Cleanup
+            const doorsToRemove = [];
+            scene.traverse(obj => { if(obj.userData && obj.userData.isDoorGroup) doorsToRemove.push(obj); });
+            doorsToRemove.forEach(d => scene.remove(d));
+            currentDoorObj = null;
             
             // Rebuild Scene parts
             const oldTreasure = scene.children.find(c => c.userData && c.userData.isTreasureGroup);
@@ -1227,13 +1233,13 @@
             refCtx.clearRect(0, 0, 512, 512);
             refCtx.fillStyle = "white";
             
-            // Draw lines for validation (Thick for easier matching)
+            // Draw lines for validation - Adjusted for 10% easier experience
             if (lines && lines.length > 0) {
                 refCtx.strokeStyle = "white";
-                refCtx.lineWidth = 75; // Even thicker lines for easier matching
+                refCtx.lineWidth = 55; // Increased from 45 for 10% easier success
                 refCtx.lineCap = "round";
                 refCtx.lineJoin = "round";
-                const scale = 320; // Increased scale for easier success
+                const scale = 320; 
                 const offX = 256;
                 const offY = 256;
                 
@@ -1335,7 +1341,32 @@
         }
 
         function updateReferenceShape() {
-            // No longer providing reference shape to student
+            const guideCanvas = document.getElementById('guide-canvas');
+            const gCtx = guideCanvas.getContext('2d');
+            
+            gCtx.clearRect(0, 0, 512, 512);
+            
+            // Draw a generic "Safe Zone" circle
+            // Increased visibility for iPad
+            gCtx.strokeStyle = "rgba(255, 212, 55, 0.4)"; // Stronger gold
+            gCtx.lineWidth = 3;
+            gCtx.setLineDash([15, 10]); // Longer dashes
+            
+            const offX = 256;
+            const offY = 256;
+            const radius = 180; 
+            
+            gCtx.beginPath();
+            gCtx.arc(offX, offY, radius, 0, Math.PI * 2);
+            gCtx.stroke();
+            
+            // Draw center crosshair - Brighter
+            gCtx.setLineDash([]);
+            gCtx.strokeStyle = "rgba(255, 255, 255, 0.2)";
+            gCtx.beginPath();
+            gCtx.moveTo(offX - 30, offY); gCtx.lineTo(offX + 30, offY);
+            gCtx.moveTo(offX, offY - 30); gCtx.lineTo(offX, offY + 30);
+            gCtx.stroke();
         }
         
         // --- TUTORIAL ANIMATION ---
@@ -1687,6 +1718,7 @@
             const hint = levelData ? levelData.hint : "未知挑戰";
             
             const g = new THREE.Group(); g.position.set(0, -2.5, zPos);
+            g.userData = { isDoorGroup: true }; // Tag for cleanup
             const frame = new THREE.Mesh(new THREE.BoxGeometry(5,6,1), new THREE.MeshStandardMaterial({color:0x111}));
             frame.position.y=3; frame.castShadow=true; frame.receiveShadow=true; g.add(frame);
             const door = new THREE.Mesh(new THREE.PlaneGeometry(4,5), new THREE.MeshStandardMaterial({color:0x332211}));
@@ -1953,29 +1985,28 @@
 
             const uniqueHits = hitMap.size;
             
-            // Coverage: Lowered requirement to 35% for a perfect coverage score
-            const coverage = Math.min(1.0, uniqueHits / Math.max(1, state.refPixelCount * 0.35));
+            // Coverage: Target coverage score - 10% easier
+            const coverage = Math.min(1.0, uniqueHits / Math.max(1, state.refPixelCount * 0.45)); 
             
-            // Precision: Ratio of hits to total shadow pixels cast
-            // Greatly reduced penalty (1.2) to make it much easier for students
-            const precision = uniqueHits / Math.max(1, uniqueHits + misses * 1.2); 
+            // Precision: Reduced penalty for misses (2.5 -> 2.0)
+            const precision = uniqueHits / Math.max(1, uniqueHits + misses * 2.0); 
 
-            // Density Check: More lenient (8x)
+            // Density Check: Slightly more lenient (4x -> 5x)
             const totalShadowPixels = uniqueHits + misses;
             let densityFactor = 1.0;
-            if (totalShadowPixels > uniqueHits * 8) densityFactor = 0.8;
+            if (totalShadowPixels > uniqueHits * 5) densityFactor = 0.6;
 
             // Calculate raw score
-            let rawScore = (coverage * 0.7 + precision * 0.3) * 100 * densityFactor;
+            let rawScore = (coverage * 0.5 + precision * 0.5) * 100 * densityFactor;
             
             // Final adjustments
             let finalScore = Math.min(100, Math.floor(rawScore * alignFactor));
 
             const md = document.getElementById('match-display');
             md.innerText = `契合度: ${finalScore}%`;
-            md.style.color = finalScore<40?'#ff4444':(finalScore<50?'#ffff00':'#00ff00');
+            md.style.color = finalScore<45?'#ff4444':(finalScore<60?'#ffff00':'#00ff00');
             
-            // Pass threshold lowered to 50%
+            // Pass threshold lowered to 60%
             if(finalScore >= 50) levelComplete();
         }
 
@@ -1999,6 +2030,13 @@
 
         function nextLevel() {
             if(state.currentLevel>=3) return;
+            
+            // Cleanup the previous door before adding a new one
+            if(currentDoorObj) {
+                scene.remove(currentDoorObj.group);
+                currentDoorObj = null;
+            }
+            
             state.currentLevel++; state.levelTransition=false; clearCanvas(); document.getElementById('match-display').innerText="契合度: 0%";
             if(state.currentLevel === 2) { 
                 toggleTorch(false); 
