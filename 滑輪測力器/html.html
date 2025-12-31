@@ -144,6 +144,11 @@
 <body class="h-full w-full relative">
 
     <canvas id="world"></canvas>
+
+    <!-- Back Button -->
+    <a href="../index.html" class="fixed top-6 left-6 z-[100] bg-white/90 backdrop-blur border border-slate-200 px-4 py-2 rounded-xl shadow-sm hover:bg-white transition-all flex items-center gap-2 text-slate-600 font-bold">
+        <span>←</span> 離開
+    </a>
     
     <!-- Toast Notification -->
     <div id="toast">提示訊息</div>
@@ -171,7 +176,7 @@
                 <span class="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded">成本</span> 與 <span class="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded">時間</span> 將決定你的分數！
             </p>
             
-            <button onclick="startIntro()" class="group w-full py-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white rounded-2xl font-bold text-xl shadow-xl hover:shadow-blue-200 transition-all mb-8 flex items-center justify-center gap-3">
+            <button onclick="showLogin()" class="group w-full py-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white rounded-2xl font-bold text-xl shadow-xl hover:shadow-blue-200 transition-all mb-8 flex items-center justify-center gap-3">
                 <span>開始挑戰</span>
                 <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
             </button>
@@ -186,6 +191,23 @@
                 <div id="start-leaderboard" class="space-y-3 text-sm text-gray-600">
                     <div class="text-center text-gray-400 italic text-xs py-2">尚無紀錄</div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGIN MODAL -->
+    <div id="login-modal" class="fixed inset-0 z-[100] bg-blueprint flex items-center justify-center hidden">
+        <div class="bg-white p-10 rounded-3xl shadow-2xl border border-slate-100 w-full max-w-md mx-auto text-center space-y-6 animate-popIn">
+            <h2 class="text-3xl font-black text-slate-800">輸入班別學號</h2>
+            <p class="text-slate-500">例如：1A (01)</p>
+            <input type="text" id="student-info" placeholder="班別 (學號)" class="w-full px-6 py-4 rounded-2xl border-2 border-slate-100 focus:border-blue-500 outline-none text-xl text-center font-bold">
+            <div class="flex gap-4">
+                <button onclick="hideLogin()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-4 rounded-2xl font-bold text-xl transition-all">
+                    取消
+                </button>
+                <button onclick="confirmLogin()" class="flex-2 bg-blue-600 hover:bg-blue-700 text-white py-4 px-8 rounded-2xl font-bold text-xl transition-all">
+                    確認進入
+                </button>
             </div>
         </div>
     </div>
@@ -584,16 +606,62 @@
         <div class="bg-white rounded-3xl p-8 max-w-md w-full text-center shadow-2xl border-4 border-yellow-100">
             <div class="text-6xl mb-2">🏆</div>
             <h2 class="text-3xl font-black text-gray-800 mb-2">恭喜通關</h2>
+            <div id="student-name-display" class="text-blue-600 font-bold mb-4"></div>
             <div class="flex justify-center gap-4 mb-6 bg-gray-50 p-4 rounded-xl">
                 <div><div class="text-xs text-gray-400 font-bold">總分</div><div id="final-score" class="text-2xl font-black text-green-600">0</div></div>
                 <div><div class="text-xs text-gray-400 font-bold">總時間</div><div id="total-time" class="text-lg font-bold text-gray-700">0s</div></div>
                 <div><div class="text-xs text-gray-400 font-bold">總成本</div><div id="total-cost" class="text-lg font-bold text-green-600">$0</div></div>
             </div>
-            <button onclick="goToStart()" class="w-full py-3 bg-gray-900 hover:bg-black text-white rounded-xl font-bold shadow-xl">回到主選單</button>
+
+            <div class="flex flex-col gap-3">
+                <button onclick="playAgainSameUser()" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-lg hover:shadow-blue-200">
+                    同一同學再玩一局
+                </button>
+                <button onclick="playAgainNewUser()" class="w-full py-4 bg-gray-800 hover:bg-gray-900 text-white rounded-xl font-bold transition-all">
+                    換同學遊玩 (重新輸入)
+                </button>
+                <button onclick="goToStart()" class="text-gray-400 hover:text-gray-600 font-bold py-2 transition-all">
+                    回到主選單
+                </button>
+            </div>
         </div>
     </div>
 
 <script>
+// --- Login & Student Tracking ---
+let currentUser = "";
+
+function showLogin() {
+    document.getElementById('login-modal').classList.remove('hidden');
+}
+
+function hideLogin() {
+    document.getElementById('login-modal').classList.add('hidden');
+}
+
+function confirmLogin() {
+    const info = document.getElementById('student-info').value.trim();
+    if(!info) {
+        alert("請輸入班別學號！");
+        return;
+    }
+    currentUser = info;
+    hideLogin();
+    startIntro();
+}
+
+function playAgainSameUser() {
+    document.getElementById('victory-modal').classList.add('hidden');
+    resetGame();
+}
+
+function playAgainNewUser() {
+    document.getElementById('victory-modal').classList.add('hidden');
+    currentUser = "";
+    document.getElementById('student-info').value = "";
+    showLogin();
+}
+
 /**
  * Pulley Engineer - Robust Physics Engine
  */
@@ -1301,6 +1369,7 @@ function showFinalVictory() {
     document.getElementById('total-time').innerText = campaignStats.totalTime.toFixed(1) + "s";
     document.getElementById('total-cost').innerText = "$" + campaignStats.totalCost;
     document.getElementById('final-score').innerText = finalScore;
+    document.getElementById('student-name-display').innerText = currentUser;
 
     let history = JSON.parse(localStorage.getItem('pulley_history') || '[]');
     history.push({ 

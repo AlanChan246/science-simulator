@@ -561,6 +561,11 @@
 </head>
 <body class="setup-mode">
 
+    <!-- Back Button -->
+    <a href="../index.html" style="position: fixed; top: 20px; left: 20px; z-index: 100; background: rgba(255,255,255,0.9); padding: 10px 20px; border-radius: 12px; text-decoration: none; color: #333; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 8px;">
+        <span>←</span> 離開
+    </a>
+
     <!-- MAIN MENU -->
     <div id="main-menu">
         <h1>🏀 彈射籃球挑戰賽</h1>
@@ -1202,7 +1207,7 @@ function init() {
         const setupPanel = document.getElementById('setup-panel');
         if (setupPanel) setupPanel.style.display = 'flex';
     });
-    uiElements.backToSetupBtn.addEventListener('click', showMainMenu);
+    uiElements.backToSetupBtn.addEventListener('click', goToHomePage);
     
     // Part selection is handled by renderPartOptions()
 
@@ -1668,6 +1673,10 @@ function setFixedTarget() {
     if (target.x < state.boardBaseX + 200) target.x = state.boardBaseX + 200;
     target.baseRimY = state.boardBaseY - 220; 
     target.rimY = target.baseRimY;
+}
+
+function goToHomePage() {
+    window.location.href = '../index.html';
 }
 
 function showMainMenu() {

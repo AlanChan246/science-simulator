@@ -99,96 +99,111 @@
 
     <div id="canvas-container"></div>
 
+    <!-- Back Button -->
+    <a href="../index.html" class="fixed top-6 left-6 z-[100] bg-white/90 backdrop-blur border border-slate-200 px-4 py-2 rounded-xl shadow-sm hover:bg-white transition-all flex items-center gap-2 text-slate-600 font-bold">
+        <span>←</span> 離開
+    </a>
+
     <!-- UI Overlay: Setup Phase -->
-    <div id="setup-ui" class="absolute top-0 left-0 h-full w-full md:w-96 glass-panel p-6 flex flex-col justify-between z-10 transition-transform duration-500 ease-in-out transform translate-x-0 overflow-y-auto">
+    <div id="setup-ui" class="absolute top-0 left-0 h-full w-full md:w-96 glass-panel p-6 flex flex-col justify-between z-10 transition-transform duration-500 ease-in-out transform translate-x-0 overflow-y-auto hidden">
         <div class="pb-20 md:pb-0">
             <h1 class="text-2xl md:text-3xl font-bold text-green-400 mb-2">傳聲喚醒實驗</h1>
             <p class="text-gray-400 text-xs md:text-sm mb-6">任務：配置紙杯電話裝置，確保傳輸的聲音足以喚醒小孩。</p>
-
-            <div class="bg-black/40 p-3 rounded border border-green-900 mb-6">
-                <h3 class="text-green-500 text-xs uppercase tracking-wider mb-1">目標資訊</h3>
-                <p class="text-gray-300 text-sm">目標狀態：<span class="text-white font-bold">熟睡中</span></p>
-                <p class="text-gray-300 text-sm">喚醒閾值：<span class="text-white font-bold">> 80 dB (固定)</span></p>
+            
+            <div id="login-section" class="mb-8 p-4 bg-green-900/20 border border-green-500/30 rounded-xl space-y-4">
+                <h3 class="text-green-500 text-xs uppercase tracking-wider">輸入班別學號</h3>
+                <input type="text" id="studentInfo" placeholder="例如：1A (01)" class="w-full bg-gray-900 text-white p-3 rounded border border-gray-600 focus:border-green-500 outline-none text-sm font-bold">
+                <button onclick="confirmLogin()" class="w-full bg-green-600 hover:bg-green-500 text-black font-bold py-2 rounded text-sm transition-all">
+                    確認進入
+                </button>
             </div>
 
-            <div class="space-y-6">
-                <div>
-                    <label class="flex items-center text-xs text-gray-400 uppercase mb-2">
-                        紙杯材質
-                        <div class="tooltip-container">
-                            <span class="info-icon">i</span>
-                            <span class="tooltip-text">【聲阻抗匹配】<br>硬材質（如金屬）能有效反射聲波進入線材；軟材質（如保麗龍）會吸收能量，造成訊號耗損。</span>
-                        </div>
-                    </label>
-                    <select id="mat-cup" class="w-full bg-gray-800 text-white p-3 rounded border border-gray-600 focus:border-green-500 outline-none text-sm">
-                        <option value="paper">紙 (標準)</option>
-                        <option value="plastic">塑膠 (高反射)</option>
-                        <option value="tin">金屬罐 (極佳共振)</option>
-                        <option value="styrofoam">保麗龍 (高吸收)</option>
-                    </select>
+            <div id="config-controls" class="opacity-50 pointer-events-none">
+                <div class="bg-black/40 p-3 rounded border border-green-900 mb-6">
+                    <h3 class="text-green-500 text-xs uppercase tracking-wider mb-1">目標資訊</h3>
+                    <p class="text-gray-300 text-sm">目標狀態：<span class="text-white font-bold">熟睡中</span></p>
+                    <p class="text-gray-300 text-sm">喚醒閾值：<span class="text-white font-bold">> 80 dB (固定)</span></p>
                 </div>
 
-                <div>
-                    <label class="flex items-center text-xs text-gray-400 uppercase mb-2">
-                        線材材質
-                        <div class="tooltip-container">
-                            <span class="info-icon">i</span>
-                            <span class="tooltip-text">【介質密度與彈性】<br>銅線密度高且剛性好，傳導聲波效率極高；毛線結構鬆散，極易吸收振動能量。</span>
-                        </div>
-                    </label>
-                    <select id="mat-string" class="w-full bg-gray-800 text-white p-3 rounded border border-gray-600 focus:border-green-500 outline-none text-sm">
-                        <option value="cotton">棉線 (標準)</option>
-                        <option value="nylon">尼龍 (彈性高)</option>
-                        <option value="copper">銅線 (傳導佳)</option>
-                        <option value="wool">毛線 (阻尼高)</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="flex justify-between items-center text-xs text-gray-400 uppercase mb-1">
-                        <div class="flex items-center">
-                            線材張力
+                <div class="space-y-6">
+                    <div>
+                        <label class="flex items-center text-xs text-gray-400 uppercase mb-2">
+                            紙杯材質
                             <div class="tooltip-container">
                                 <span class="info-icon">i</span>
-                                <span class="tooltip-text">【傳播介質張力】<br>張力越高，介質越緊繃，分子間傳遞振動的效率越高。鬆弛的線材無法有效傳遞縱波。</span>
+                                <span class="tooltip-text">【聲阻抗匹配】<br>硬材質（如金屬）能有效反射聲波進入線材；軟材質（如保麗龍）會吸收能量，造成訊號耗損。</span>
                             </div>
-                        </div>
-                        <span id="val-tension" class="text-green-400">50%</span>
-                    </label>
-                    <input type="range" id="input-tension" min="0" max="100" value="50" class="w-full">
-                </div>
+                        </label>
+                        <select id="mat-cup" class="w-full bg-gray-800 text-white p-3 rounded border border-gray-600 focus:border-green-500 outline-none text-sm">
+                            <option value="paper">紙 (標準)</option>
+                            <option value="plastic">塑膠 (高反射)</option>
+                            <option value="tin">金屬罐 (極佳共振)</option>
+                            <option value="styrofoam">保麗龍 (高吸收)</option>
+                        </select>
+                    </div>
 
-                <div>
-                    <label class="flex justify-between items-center text-xs text-gray-400 uppercase mb-1">
-                        <div class="flex items-center">
-                            線材粗細
+                    <div>
+                        <label class="flex items-center text-xs text-gray-400 uppercase mb-2">
+                            線材材質
                             <div class="tooltip-container">
                                 <span class="info-icon">i</span>
-                                <span class="tooltip-text">【截面積效應】<br>較粗的線材提供更大的截面積，減少聲波傳導時的阻力與熱耗損，適合長距離傳輸。</span>
+                                <span class="tooltip-text">【介質密度與彈性】<br>銅線密度高且剛性好，傳導聲波效率極高；毛線結構鬆散，極易吸收振動能量。</span>
                             </div>
-                        </div>
-                        <span id="val-thickness" class="text-green-400">2 mm</span>
-                    </label>
-                    <input type="range" id="input-thickness" min="1" max="10" value="2" step="0.5" class="w-full">
-                </div>
+                        </label>
+                        <select id="mat-string" class="w-full bg-gray-800 text-white p-3 rounded border border-gray-600 focus:border-green-500 outline-none text-sm">
+                            <option value="cotton">棉線 (標準)</option>
+                            <option value="nylon">尼龍 (彈性高)</option>
+                            <option value="copper">銅線 (傳導佳)</option>
+                            <option value="wool">毛線 (阻尼高)</option>
+                        </select>
+                    </div>
 
-                 <div>
-                    <label class="flex justify-between items-center text-xs text-gray-400 uppercase mb-1">
-                        <div class="flex items-center">
-                            鬧鐘音量
-                            <div class="tooltip-container">
-                                <span class="info-icon">i</span>
-                                <span class="tooltip-text">【初始能量】<br>聲源的振幅大小。輸入能量越大，即便經過傳輸耗損，到達接收端的剩餘能量也越多。</span>
+                    <div>
+                        <label class="flex justify-between items-center text-xs text-gray-400 uppercase mb-1">
+                            <div class="flex items-center">
+                                線材張力
+                                <div class="tooltip-container">
+                                    <span class="info-icon">i</span>
+                                    <span class="tooltip-text">【傳播介質張力】<br>張力越高，介質越緊繃，分子間傳遞振動的效率越高。鬆弛的線材無法有效傳遞縱波。</span>
+                                </div>
                             </div>
-                        </div>
-                        <span id="val-amp" class="text-green-400">80%</span>
-                    </label>
-                    <input type="range" id="input-amp" min="0" max="100" value="80" class="w-full">
+                            <span id="val-tension" class="text-green-400">50%</span>
+                        </label>
+                        <input type="range" id="input-tension" min="0" max="100" value="50" class="w-full">
+                    </div>
+
+                    <div>
+                        <label class="flex justify-between items-center text-xs text-gray-400 uppercase mb-1">
+                            <div class="flex items-center">
+                                線材粗細
+                                <div class="tooltip-container">
+                                    <span class="info-icon">i</span>
+                                    <span class="tooltip-text">【截面積效應】<br>較粗的線材提供更大的截面積，減少聲波傳導時的阻力與熱耗損，適合長距離傳輸。</span>
+                                </div>
+                            </div>
+                            <span id="val-thickness" class="text-green-400">2 mm</span>
+                        </label>
+                        <input type="range" id="input-thickness" min="1" max="10" value="2" step="0.5" class="w-full">
+                    </div>
+
+                    <div>
+                        <label class="flex justify-between items-center text-xs text-gray-400 uppercase mb-1">
+                            <div class="flex items-center">
+                                鬧鐘音量
+                                <div class="tooltip-container">
+                                    <span class="info-icon">i</span>
+                                    <span class="tooltip-text">【初始能量】<br>聲源的振幅大小。輸入能量越大，即便經過傳輸耗損，到達接收端的剩餘能量也越多。</span>
+                                </div>
+                            </div>
+                            <span id="val-amp" class="text-green-400">80%</span>
+                        </label>
+                        <input type="range" id="input-amp" min="0" max="100" value="80" class="w-full">
+                    </div>
                 </div>
             </div>
         </div>
 
-        <button id="btn-deploy" class="w-full bg-green-600 hover:bg-green-500 text-black font-bold py-4 rounded uppercase tracking-widest transition-colors mt-4 shadow-lg mb-6 md:mb-0">
+        <button id="btn-deploy" class="w-full bg-green-600 hover:bg-green-500 text-black font-bold py-4 rounded uppercase tracking-widest transition-colors mt-4 shadow-lg mb-6 md:mb-0 hidden">
             部署至房間
         </button>
     </div>
@@ -229,9 +244,19 @@
         <div class="text-center p-6 md:p-8 border-2 border-white/20 bg-gray-900 rounded max-w-md w-full pointer-events-auto shadow-2xl">
             <h2 id="result-title" class="text-3xl md:text-4xl font-bold mb-4 text-white">結果</h2>
             <p id="result-message" class="text-gray-300 mb-6 text-sm md:text-base leading-relaxed">分析中...</p>
-            <button onclick="resetGame()" class="bg-white text-black px-8 py-3 rounded font-bold hover:bg-gray-200 uppercase tracking-wider w-full md:w-auto transition-colors">
-                再試一次
-            </button>
+            <div id="playerNameDisplay" class="mb-6 text-green-400 font-bold"></div>
+            
+            <div class="flex flex-col gap-4">
+                <button onclick="playAgainSameUser()" class="bg-green-600 text-black px-8 py-4 rounded font-bold hover:bg-green-500 uppercase tracking-wider transition-colors">
+                    同一同學再玩一局
+                </button>
+                <button onclick="playAgainNewUser()" class="bg-gray-700 text-white px-8 py-4 rounded font-bold hover:bg-gray-600 uppercase tracking-wider transition-colors">
+                    換同學遊玩 (重新輸入)
+                </button>
+                <button onclick="window.location.href='../index.html'" class="text-gray-400 hover:text-white font-bold py-2 transition-all">
+                    返回主目錄
+                </button>
+            </div>
         </div>
     </div>
 
@@ -243,6 +268,34 @@
             }
             initGame();
         });
+
+        // --- Login & Student Tracking ---
+        let currentUser = "";
+
+        function confirmLogin() {
+            const info = document.getElementById('studentInfo').value.trim();
+            if(!info) {
+                alert("請輸入班別學號！");
+                return;
+            }
+            currentUser = info;
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('config-controls').classList.remove('opacity-50', 'pointer-events-none');
+            document.getElementById('btn-deploy').classList.remove('hidden');
+        }
+
+        function playAgainSameUser() {
+            resetGame();
+        }
+
+        function playAgainNewUser() {
+            currentUser = "";
+            document.getElementById('studentInfo').value = "";
+            document.getElementById('login-section').classList.remove('hidden');
+            document.getElementById('config-controls').classList.add('opacity-50', 'pointer-events-none');
+            document.getElementById('btn-deploy').classList.add('hidden');
+            resetGame();
+        }
 
         function initGame() {
             // --- GAME STATE ---
@@ -693,6 +746,7 @@
 
             function showResult(success, source, received) {
                 uiElements.result.classList.remove('hidden');
+                document.getElementById('playerNameDisplay').innerText = currentUser;
                 
                 if(success) {
                     uiElements.resultTitle.innerText = "喚醒成功！";

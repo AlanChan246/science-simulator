@@ -38,18 +38,23 @@
             position: absolute;
             left: 0;
             top: 0;
-            background: rgba(100, 20, 20, 0.6);
-            border: 1px solid #ff4444;
-            color: #ffcccc;
-            padding: 8px 15px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #ddd;
+            color: #333;
+            padding: 10px 20px;
             cursor: pointer;
             font-size: 16px;
-            border-radius: 4px;
+            font-weight: bold;
+            border-radius: 12px;
             pointer-events: auto;
             z-index: 1000;
             transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }
-        #btn-exit:hover { background: #ff4444; color: #fff; }
+        #btn-exit:hover { background: #fff; transform: translateY(-2px); }
 
         .hud-text {
             color: rgba(255, 230, 200, 0.9);
@@ -229,36 +234,59 @@
 
         #drawing-container {
             display: flex;
-            gap: 20px;
-            align-items: flex-start;
+            gap: 40px;
+            align-items: center;
+            background: rgba(20, 20, 30, 0.9);
+            padding: 40px;
+            border-radius: 24px;
+            border: 2px solid #d4af37;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        }
+
+        /* Zodiac Reference Chart */
+        .zodiac-chart {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr); /* Increased columns */
+            gap: 15px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 15px;
+            border: 1px solid #444;
+        }
+        .zodiac-ref-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 15px;
+            width: 130px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .zodiac-ref-canvas {
+            width: 110px;
+            height: 110px;
+            margin-bottom: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+        }
+        .zodiac-ref-emoji {
+            font-size: 32px;
+            margin-bottom: 5px;
+        }
+        .zodiac-ref-name {
+            font-size: 17px;
+            color: #d4af37;
+            font-weight: bold;
         }
 
         #drawing-area-wrapper {
             position: relative;
-            box-shadow: 0 0 50px rgba(255, 60, 0, 0.15);
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
             border: 2px solid #555;
-            background: #fff;
+            background: #000;
         }
         
-        #reference-wrapper {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 5px;
-        }
-
-        #reference-canvas {
-            width: 150px;
-            height: 150px;
-            border: 2px solid #555;
-            background: #222;
-            border-radius: 4px;
-        }
-        
-        #ref-label {
-            color: #aaa; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold;
-        }
-
         #drawing-canvas {
             display: block;
             cursor: crosshair;
@@ -544,11 +572,10 @@
     <div id="magic-flash"></div>
 
     <div id="ui-layer">
-        <div class="hud-top">
-            <button id="btn-exit">離開</button>
-            <div class="hud-text" id="objective">目標：...</div>
-            <div class="hud-text" id="match-display">契合度: 0%</div>
-            <div id="timer-display">00:00</div>
+            <div class="hud-top">
+                <button id="btn-exit">離開</button>
+                <div class="hud-text" id="match-display">契合度: 0%</div>
+                <div id="timer-display">00:00</div>
             
             <div id="top-controls">
                 <div class="btn" id="btn-torch" title="切換火把 (F)">🔦</div>
@@ -576,75 +603,100 @@
 
     <!-- Drawing Modal -->
     <div id="drawing-modal">
-        <div style="color: #d4af37; margin-bottom: 10px; font-size: 24px; letter-spacing: 3px; font-weight: bold;">繪製符文</div>
+        <div style="color: #d4af37; margin-bottom: 25px; font-size: 32px; letter-spacing: 5px; font-weight: bold; text-shadow: 0 0 20px rgba(212, 175, 55, 0.4);">製作星空投影投影片</div>
         
-        <div class="toolbar">
-            <div class="tool-group">
-                <div class="tool-row">
-                    <button class="tool-btn" id="tool-undo">
-                        <span class="tool-icon">↩️</span>
-                        <span class="tool-text">復原</span>
-                    </button>
-                    <button class="tool-btn" id="tool-redo">
-                        <span class="tool-icon">↪️</span>
-                        <span class="tool-text">重做</span>
-                    </button>
-                </div>
-                <div class="tool-label">紀錄</div>
-            </div>
-            
-            <div class="tool-group">
-                <div class="tool-row">
-                    <button class="tool-btn active" id="tool-brush">
-                        <span class="tool-icon">🖌️</span>
-                        <span class="tool-text">畫筆</span>
-                    </button>
-                    <button class="tool-btn" id="tool-eraser">
-                        <span class="tool-icon">🧼</span>
-                        <span class="tool-text">橡皮擦</span>
-                    </button>
-                </div>
-                <div class="tool-label">工具</div>
-            </div>
-
-            <div class="tool-group">
-                <div class="palette-grid" id="palette">
-                    <!-- 12 Colors -->
-                    <div class="color-swatch active" style="background: #b41414;" data-color="#b41414"></div>
-                    <div class="color-swatch" style="background: #ff5500;" data-color="#ff5500"></div>
-                    <div class="color-swatch" style="background: #ffcc00;" data-color="#ffcc00"></div>
-                    <div class="color-swatch" style="background: #00cc00;" data-color="#00cc00"></div>
-                    <div class="color-swatch" style="background: #00cccc;" data-color="#00cccc"></div>
-                    <div class="color-swatch" style="background: #0055ff;" data-color="#0055ff"></div>
-                    <div class="color-swatch" style="background: #5500ff;" data-color="#5500ff"></div>
-                    <div class="color-swatch" style="background: #ff00ff;" data-color="#ff00ff"></div>
-                    <div class="color-swatch" style="background: #ffffff;" data-color="#ffffff"></div>
-                    <div class="color-swatch" style="background: #888888;" data-color="#888888"></div>
-                    <div class="color-swatch" style="background: #333333;" data-color="#333333"></div>
-                    <div class="color-swatch" style="background: #5c4033;" data-color="#5c4033"></div>
-                </div>
-                <div class="tool-label">顏色</div>
-            </div>
-            
-            <div class="tool-group">
-                <input type="range" id="tool-size" min="2" max="50" value="25">
-                <div class="tool-label">大小</div>
-            </div>
-        </div>
-
         <div id="drawing-container">
-            <div id="drawing-area-wrapper">
-                <canvas id="drawing-canvas" width="512" height="512" style="width: 300px; height: 300px;"></canvas>
+            <!-- Left: Zodiac Reference Chart -->
+            <div class="zodiac-chart">
+                <div style="grid-column: span 4; text-align: center; color: #888; font-size: 14px; margin-bottom: 8px; border-bottom: 1px solid #333; padding-bottom: 8px; letter-spacing: 2px;">黃道十二宮星圖參考</div>
+                <div class="zodiac-ref-item" data-type="aries">
+                    <canvas class="zodiac-ref-canvas" width="150" height="150"></canvas>
+                    <span class="zodiac-ref-name">牡羊座</span>
+                </div>
+                <div class="zodiac-ref-item" data-type="taurus">
+                    <canvas class="zodiac-ref-canvas" width="150" height="150"></canvas>
+                    <span class="zodiac-ref-name">金牛座</span>
+                </div>
+                <div class="zodiac-ref-item" data-type="gemini">
+                    <canvas class="zodiac-ref-canvas" width="150" height="150"></canvas>
+                    <span class="zodiac-ref-name">雙子座</span>
+                </div>
+                <div class="zodiac-ref-item" data-type="cancer">
+                    <canvas class="zodiac-ref-canvas" width="150" height="150"></canvas>
+                    <span class="zodiac-ref-name">巨蟹座</span>
+                </div>
+                <div class="zodiac-ref-item" data-type="leo">
+                    <canvas class="zodiac-ref-canvas" width="150" height="150"></canvas>
+                    <span class="zodiac-ref-name">獅子座</span>
+                </div>
+                <div class="zodiac-ref-item" data-type="virgo">
+                    <canvas class="zodiac-ref-canvas" width="150" height="150"></canvas>
+                    <span class="zodiac-ref-name">處女座</span>
+                </div>
+                <div class="zodiac-ref-item" data-type="libra">
+                    <canvas class="zodiac-ref-canvas" width="150" height="150"></canvas>
+                    <span class="zodiac-ref-name">天秤座</span>
+                </div>
+                <div class="zodiac-ref-item" data-type="scorpio">
+                    <canvas class="zodiac-ref-canvas" width="150" height="150"></canvas>
+                    <span class="zodiac-ref-name">天蠍座</span>
+                </div>
+                <div class="zodiac-ref-item" data-type="sagittarius">
+                    <canvas class="zodiac-ref-canvas" width="150" height="150"></canvas>
+                    <span class="zodiac-ref-name">射手座</span>
+                </div>
+                <div class="zodiac-ref-item" data-type="capricorn">
+                    <canvas class="zodiac-ref-canvas" width="150" height="150"></canvas>
+                    <span class="zodiac-ref-name">摩羯座</span>
+                </div>
+                <div class="zodiac-ref-item" data-type="aquarius">
+                    <canvas class="zodiac-ref-canvas" width="150" height="150"></canvas>
+                    <span class="zodiac-ref-name">水瓶座</span>
+                </div>
+                <div class="zodiac-ref-item" data-type="pisces">
+                    <canvas class="zodiac-ref-canvas" width="150" height="150"></canvas>
+                    <span class="zodiac-ref-name">雙魚座</span>
+                </div>
             </div>
-            <div id="reference-wrapper">
-                <div id="ref-label">目標形狀</div>
-                <canvas id="reference-canvas" width="150" height="150"></canvas>
+
+            <!-- Right: Drawing Area -->
+            <div style="display: flex; flex-direction: column; align-items: center;">
+                <div class="toolbar" style="margin-bottom: 20px; background: rgba(0,0,0,0.5);">
+                    <div class="tool-group">
+                        <div class="tool-row">
+                            <button class="tool-btn" id="tool-undo"><span class="tool-icon">↩️</span><span class="tool-text">復原</span></button>
+                            <button class="tool-btn" id="tool-redo"><span class="tool-icon">↪️</span><span class="tool-text">重做</span></button>
+                        </div>
+                    </div>
+                    <div class="tool-group">
+                        <div class="tool-row">
+                            <button class="tool-btn active" id="tool-brush"><span class="tool-icon">🖌️</span><span class="tool-text">畫筆</span></button>
+                            <button class="tool-btn" id="tool-eraser"><span class="tool-icon">🧼</span><span class="tool-text">橡皮擦</span></button>
+                        </div>
+                    </div>
+                    <div class="tool-group">
+                        <div class="tool-row">
+                            <button class="tool-btn" id="btn-modal-clear"><span class="tool-icon">🗑️</span><span class="tool-text">重填</span></button>
+                        </div>
+                    </div>
+                    <div class="tool-group">
+                        <input type="range" id="tool-size" min="5" max="50" value="25">
+                        <div class="tool-label">粗細</div>
+                    </div>
+                </div>
+
+                <div id="drawing-area-wrapper">
+                    <canvas id="drawing-canvas" width="512" height="512" style="width: 400px; height: 400px; background: #000;"></canvas>
+                </div>
+                
+                <p style="color: #aaa; margin-top: 15px; font-size: 14px;">請思考關卡要求的星座，畫出對應的星圖</p>
+                
+                <div style="margin-top: 20px;">
+                    <button class="tool-btn" id="btn-modal-done" style="width: 240px; height: 55px; background: #28a745; color: white; flex-direction: row; gap: 12px; font-size: 18px;">
+                        <span class="tool-icon">✅</span> <span>確認製作</span>
+                    </button>
+                </div>
             </div>
-        </div>
-        
-        <div class="modal-controls">
-            <button class="modal-btn" id="btn-modal-clear">全部清除</button>
-            <button class="modal-btn confirm" id="btn-modal-done">完成</button>
         </div>
     </div>
 
@@ -655,10 +707,11 @@
             <!-- Visual Animation -->
             <canvas id="tutorial-canvas" width="400" height="180"></canvas>
             <p id="tutorial-text" style="text-align: left; font-size: 15px;">
-                <span style="color:#d4af37">★ 觀測原理：</span> 當紙卡(白框) <b style="color:#ffaa00">靠近</b> 光源時，影子會變大；<b style="color:#00ffff">遠離</b> 時，影子會變小。<br>
-                <br>
-                1. <b>繪圖：</b> 畫出星圖。<br>
-                2. <b>投影：</b> 調整「陰影大小」滑桿，讓影子與門上的刻痕重合！
+                <span style="color:#d4af37">★ 挑戰規則：</span><br>
+                1. <b>認知：</b> 觀察門上的星座提示。<br>
+                2. <b>思考：</b> 在製作介面參考「星圖表」，找出對應的形狀。<br>
+                3. <b>繪圖：</b> 親手畫出該星座連線。<br>
+                4. <b>投影：</b> 調整距離，將影子投影在門上對齊！
             </p>
             <button id="btn-tutorial-start" class="big-btn" style="font-size: 18px; padding: 10px 40px; margin-top:0;">開始挑戰</button>
         </div>
@@ -667,7 +720,6 @@
     <!-- Fun Fact Modal -->
     <div id="fact-modal">
         <div class="fact-content">
-            <div id="fact-symbol">♈</div>
             <h2 id="fact-title" style="color: #ffaa00; margin: 0 0 10px 0;">星座知識</h2>
             <div style="position: relative;">
                 <canvas id="fact-canvas" width="250" height="250"></canvas>
@@ -684,11 +736,17 @@
                     <h1>暗影神廟</h1>
                     <p>
                         古人以光影封印了這些門扉，你需要星辰的指引。<br>
-                        1. <b>移動 & 跳躍：</b> 探索未知的神廟。<br>
-                        2. <b>繪製 (✏️)：</b> 畫出<b>黃道十二宮</b>的星圖連線。<br>
-                        3. <b>投射 (🤚)：</b> 舉起石板，利用火把投射陰影。<br>
-                        4. <b>對齊：</b> 調整距離，將影子完美嵌入刻痕中。<br>
+                        1. <b>探索：</b> 尋找神廟中被封印的星座之門。<br>
+                        2. <b>思考 (✏️)：</b> 根據門上的名稱，繪製正確的<b>黃道十二宮</b>符號。<br>
+                        3. <b>投射 (🤚)：</b> 利用火把將你繪製的符號投射到門上。<br>
+                        4. <b>解鎖：</b> 調整距離，讓影子的形狀與門上的封印契合。<br>
                     </p>
+                    
+                    <div style="margin: 20px 0; background: rgba(255,255,255,0.1); padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2);">
+                        <label style="display: block; color: #d4af37; margin-bottom: 10px; font-weight: bold;">輸入班別學號：</label>
+                        <input type="text" id="student-info" placeholder="例如：1A (01)" style="width: 100%; padding: 12px; border-radius: 8px; border: none; background: rgba(0,0,0,0.5); color: #fff; text-align: center; font-size: 18px; margin-bottom: 10px; box-sizing: border-box;">
+                    </div>
+
                     <button id="start-btn" class="big-btn">進入神廟</button>
                 </div>
                 <div id="leaderboard">
@@ -713,7 +771,11 @@
             <div style="font-size: 30px; color: #d4af37; margin-bottom: 30px;" id="final-time">
                 時間: 00:00
             </div>
-            <button id="restart-btn" class="big-btn">返回首頁</button>
+            <div style="display: flex; gap: 20px; justify-content: center; width: 100%; max-width: 600px; margin: 0 auto;">
+                <button id="restart-btn" class="big-btn" style="flex: 1;">同一位同學<br><span style="font-size: 14px; opacity: 0.8;">(再玩一局)</span></button>
+                <button onclick="playAgainNewUser()" class="big-btn" style="flex: 1; background: #444; border-color: #666;">另一位同學<br><span style="font-size: 14px; opacity: 0.8;">(重新輸入)</span></button>
+            </div>
+            <button onclick="resetGameToHome()" class="big-btn" style="margin-top: 20px; background: none; border: 1px solid #555; font-size: 18px;">返回主目錄</button>
         </div>
     </div>
 
@@ -725,65 +787,117 @@
         const CONSTELLATIONS = {
             aries: { 
                 name: "牡羊座 (Aries)", symbol: "♈",
-                fact: "牡羊座位於雙魚座和金牛座之間。在希臘神話中代表長著金羊毛的公羊。它雖然是黃道十二宮的第一個星座，但實際上相當暗淡，最亮的主星是婁宿三 (Hamal)。",
-                lines: [[-0.6,0.0, -0.2,0.2], [-0.2,0.2, 0.3,0.1], [0.3,0.1, 0.6,-0.1]] 
+                hint: "神話中的金羊毛公羊",
+                fact: "它的星圖看起來像一個向上的彎鉤。希臘神話中，這是一隻長著金羊毛的飛天神羊，守護著黃道第一宮。",
+                lines: [[-0.4,-0.1, 0.1,0.2], [0.1,0.2, 0.3,0.25], [0.3,0.25, 0.4,0.15]] 
             },
             taurus: { 
                 name: "金牛座 (Taurus)", symbol: "♉",
-                fact: "金牛座是冬季夜空中最顯眼的星座之一。它包含著名的昂宿星團（七姊妹星團）和畢宿星團。最亮的主星畢宿五是一顆紅巨星，代表公牛憤怒的眼睛。",
-                lines: [[-0.4,0.3, 0.0,0.0], [0.4,0.3, 0.0,0.0], [0.0,0.0, -0.2,-0.4], [0.0,0.0, 0.2,-0.4]] 
+                hint: "憤怒的紅牛眼睛",
+                fact: "金牛座呈明顯的『V』字形，那是公牛憤怒的頭部。最亮的紅星『畢宿五』就在這個 V 字的其中一端哦。",
+                lines: [[-0.3,0.3, -0.1,0.1], [-0.4,0.1, -0.1,-0.1], [-0.1,0.1, -0.05,0.02], [-0.05,0.02, 0.05,-0.02], [0.05,-0.02, -0.1,-0.1], [-0.1,-0.1, 0.1,-0.2], [0.1,-0.2, 0.3,-0.3], [0.3,-0.3, 0.35,-0.4]] 
             },
             gemini: { 
                 name: "雙子座 (Gemini)", symbol: "♊",
-                fact: "雙子座以希臘神話中的雙胞胎卡斯托爾和波吕丢刻斯命名。兩顆最亮的恆星也以此命名，雖然它們看起來很近，但其實在宇宙中相距甚遠。",
-                lines: [[-0.3,0.6, -0.3,-0.6], [0.3,0.6, 0.3,-0.6], [-0.3,0.6, 0.3,0.6], [-0.3,-0.6, 0.3,-0.6]] 
+                hint: "形影不離的雙胞胎",
+                fact: "星圖由兩組併排的亮星連線組成。代表一對形影不離的雙胞胎兄弟，在夜空中牽著手併排散步。",
+                lines: [[-0.1,0.3, -0.05,0.2], [-0.05,0.2, -0.2,0.1], [-0.2,0.1, -0.2,-0.1], [-0.2,-0.1, -0.15,-0.3], [-0.05,0.2, 0.0,0], [0.0,0, -0.05,-0.2], [-0.05,-0.2, -0.02,-0.4], [0.2,0.35, 0.2,0.2], [0.2,0.2, 0.35,0.2], [0.2,0.2, 0.2,0.05], [0.2,0.05, 0.25,-0.1], [0.25,-0.1, 0.35,-0.2], [0.25,-0.1, 0.15,-0.2], [0.15,-0.2, 0.1,-0.3]] 
             },
             cancer: { 
                 name: "巨蟹座 (Cancer)", symbol: "♋",
-                fact: "巨蟹座是黃道十二宮中最暗的星座，形狀像一個倒立的Y。它的中心有一個美麗的疏散星團，稱為鬼宿星團 (M44)，肉眼看去像一團模糊的雲霧。",
-                lines: [[0.0,0.2, -0.4,-0.2], [0.0,0.2, 0.4,-0.2], [0.0,0.2, 0.0,0.6]] 
+                hint: "害羞的小螃蟹",
+                fact: "星圖呈現『Y』字形狀，像是螃蟹害羞地收起爪子。雖然它的星星比較暗，但中心藏著一個閃亮亮的星團哦。",
+                lines: [[-0.2,0.2, 0.05,0.05], [0.05,0.05, 0.2,0.1], [0.2,0.1, 0.4,0.3], [0.05,0.05, -0.1,-0.25]] 
             },
             leo: { 
                 name: "獅子座 (Leo)", symbol: "♌",
-                fact: "獅子座是少數形狀真的像其代表動物的星座之一。其頭部由一個像反向問號的鐮刀狀星群組成，最亮的恆星軒轅十四位於心臟位置。",
-                lines: [[0.4,0.4, 0.2,0.6], [0.2,0.6, -0.1,0.5], [-0.1,0.5, -0.3,0.1], [-0.3,0.1, -0.3,-0.3], [-0.3,-0.3, 0.3,-0.3], [0.3,-0.3, -0.1,0.5]] 
+                hint: "威風凜凜的百獸之王",
+                fact: "它的頭部連線呈現一個反向的問號，看起來就像獅子華麗的鬃毛。這是星空中非常容易辨認的百獸之王！",
+                lines: [[0.4,0.1, 0.2,0.25], [0.2,0.25, 0.0,0.1], [0.0,0.1, 0.1,-0.1], [0.1,-0.1, 0.3,-0.1], [0.3,-0.1, 0.3,-0.3], [0.3,-0.3, -0.4,-0.4], [-0.4,-0.4, -0.1,-0.2], [-0.1,-0.2, 0.1,-0.1]] 
             },
             virgo: { 
                 name: "處女座 (Virgo)", symbol: "♍",
-                fact: "處女座是全天第二大星座。它擁有很多遙遠的星系。最亮的恆星角宿一 (Spica) 非常明亮，通常被描繪為女神手中的麥穗。",
-                lines: [[-0.5,0.5, -0.1,0.3], [-0.1,0.3, 0.3,0.5], [-0.1,0.3, -0.1,-0.3], [-0.1,-0.3, 0.3,-0.5], [0.3,0.5, 0.3,-0.5]] 
+                hint: "女神手中的豐收麥穗",
+                fact: "複雜的連線構成一位女神優雅的輪廓。她手中握著閃亮的麥穗（角宿一），象徵著大地豐收與和平。",
+                lines: [[0.3,0.4, 0.25,0.2], [0.25,0.2, 0,0.1], [0,0.1, 0.2,0.1], [0.2,0.1, 0.2,-0.1], [0.2,-0.1, 0.3,-0.2], [0.3,-0.2, 0.0,-0.4], [0,0.1, -0.1,-0.1], [-0.1,-0.1, -0.2,-0.15], [-0.2,-0.15, -0.4,-0.3], [-0.1,-0.1, -0.1,-0.3]] 
             },
             libra: { 
                 name: "天秤座 (Libra)", symbol: "♎",
-                fact: "天秤座是黃道十二宮中唯一代表無生命物體的星座（秤）。古希臘人曾將其視為天蠍座的螯，直到羅馬時期才獨立成為代表正義的天秤。",
-                lines: [[-0.5,-0.2, 0.5,-0.2], [-0.3,0.3, 0.3,0.3], [0.0,0.6, -0.3,0.3], [0.0,0.6, 0.3,0.3]] 
+                hint: "代表公平的正義天秤",
+                fact: "星圖呈現三角形結構，象徵著公平的正義天秤。它是星空中唯一的無生命物體，代表公平與公義。",
+                lines: [[0,0.3, -0.3,0.1], [-0.3,0.1, 0.3,0.05], [0.3,0.05, 0,0.3], [-0.3,0.1, -0.1,-0.1], [-0.1,-0.1, -0.1,-0.4], [0.3,0.05, 0.35,-0.2], [0.35,-0.2, 0.45,-0.2]] 
             },
             scorpio: { 
                 name: "天蠍座 (Scorpius)", symbol: "♏",
-                fact: "天蠍座位於銀河中心附近，形狀像一隻巨大的蠍子。其心臟是一顆明亮的紅超巨星——心宿二，古人常將其與火星（Mars）相提並論。",
-                lines: [[-0.4,0.5, -0.1,0.2], [-0.1,0.2, 0.2,0.5], [0.2,0.5, 0.2,-0.3], [0.2,-0.3, 0.5,-0.1], [0.5,-0.1, 0.6,0.1]] 
+                hint: "銀河中心的紅色毒蠍",
+                fact: "星圖尾部呈現明顯的鉤狀『S』形，就像一隻威風的蠍子。中心的紅星『心宿二』正是蠍子的心臟。",
+                lines: [[-0.1,0.2, 0.0,0.4], [-0.1,0.2, -0.3,0.25], [-0.1,0.2, -0.2,0.05], [-0.1,0.2, 0.0,0.05], [0.0,0.05, 0.1,-0.1], [0.1,-0.1, 0.1,-0.3], [0.1,-0.3, 0.25,-0.4], [0.25,-0.4, 0.4,-0.35], [0.4,-0.35, 0.45,-0.2], [0.45,-0.2, 0.35,-0.1]] 
             },
             sagittarius: { 
                 name: "射手座 (Sagittarius)", symbol: "♐",
-                fact: "射手座位於銀河系中心最密集的區域。其中最著名的特徵是「茶壺」星群，看起來就像一個正在倒茶的茶壺，而銀河則是冒出的熱氣。",
-                lines: [[-0.4,-0.2, 0.2,0.4], [0.2,0.4, 0.2,0.0], [0.2,0.4, -0.1,0.6], [-0.4,-0.2, -0.1,-0.5]] 
+                hint: "銀河系中心的神秘茶壺",
+                fact: "射手座的中心部分連成了一個明顯的『茶壺』形狀。傳說銀河就是從這個神奇壺嘴中噴出的蒸汽哦！",
+                lines: [[-0.2,0.3, -0.1,0.1], [-0.1,0.1, 0,0.1], [0,0.1, 0.1,0], [0.1,0, 0.2,0.2], [0.1,0, 0.1,-0.2], [0.1,-0.2, 0.2,-0.3], [0.1,-0.2, 0.3,-0.1], [-0.1,0.1, -0.2,0.05], [-0.2,0.05, -0.3,0.15], [-0.3,0.15, -0.4,0], [-0.4,0, -0.35,-0.2], [-0.35,-0.2, -0.3,-0.35], [-0.35,-0.2, -0.2,-0.2]] 
             },
             capricorn: { 
                 name: "摩羯座 (Capricornus)", symbol: "♑",
-                fact: "摩羯座是黃道十二宮中第二暗的星座。它的形象是一隻海山羊——上半身是山羊，下半身是魚尾。這是古代巴比倫天文學中就存在的形象。",
-                lines: [[-0.5,0.3, 0.0,-0.3], [0.0,-0.3, 0.5,0.3], [-0.5,0.3, 0.5,0.3]] 
+                hint: "半羊半魚的音樂牧神",
+                fact: "連線構成一個大三角形輪廓。這是一個奇特的生物：上半身是山羊，下半身卻是魚尾巴，是一位擅長音樂的牧神。",
+                lines: [[0.3,0.3, 0.25,0.15], [0.25,0.15, 0.2,-0.25], [0.2,-0.25, 0.1,-0.3], [0.1,-0.3, -0.1,-0.25], [-0.1,-0.25, -0.2,-0.15], [-0.2,-0.15, -0.3,-0.05], [-0.3,-0.05, -0.2,0], [-0.2,0, 0,0.1], [0,0.1, 0.25,0.15]] 
             },
             aquarius: { 
                 name: "水瓶座 (Aquarius)", symbol: "♒",
-                fact: "水瓶座意為「倒水的人」，位於天球的「海」區域，周圍有許多與水有關的星座（如鯨魚座、雙魚座）。它以包含多個球狀星團而聞名。",
-                lines: [[-0.5,0.4, -0.2,0.1], [-0.2,0.1, 0.1,0.4], [0.1,0.4, 0.4,0.1], [-0.5,0.0, -0.2,-0.3], [-0.2,-0.3, 0.1,0.0], [0.1,0.0, 0.4,-0.3]] 
+                hint: "智慧之水的傾倒者",
+                fact: "星圖由幾條發散的連線組成，像是從水瓶中傾倒而出的智慧之水，滋潤著整片宇宙星空。",
+                lines: [[-0.2,0.3, -0.3,0.2], [-0.3,0.2, -0.4,0], [-0.4,0, -0.1,-0.1], [-0.1,-0.1, -0.05,-0.2], [-0.05,-0.2, 0,-0.4], [-0.2,0.3, -0.1,0.35], [-0.1,0.35, 0,0.35], [0,0.35, 0.1,0.15], [0.1,0.15, 0.25,0], [0,0.35, 0.4,0.1]] 
             },
             pisces: { 
                 name: "雙魚座 (Pisces)", symbol: "♓",
-                fact: "雙魚座代表兩條被繩索連在一起的魚，正試圖游向不同的方向。春分點目前位於此星座內，這標誌著天文學上春天的開始。",
-                lines: [[-0.4,0.4, 0.0,0.0], [0.4,0.4, 0.0,0.0], [0.0,0.0, -0.3,-0.5], [0.0,0.0, 0.3,-0.5]] 
+                hint: "繩索繫著的兩條小魚",
+                fact: "兩組連線在底部交匯成一個大『V』字形。代表兩條被絲帶繫在一起的小魚，朝著不同方向努力游動。",
+                lines: [[-0.4,-0.4, -0.35,-0.2], [-0.35,-0.2, -0.32,0.0], [-0.32,0.0, -0.35,0.2], [-0.35,0.2, -0.4,0.4], [-0.4,-0.4, -0.2,-0.35], [-0.2,-0.35, 0.0,-0.25], [0.0,-0.25, 0.2,-0.15], [0.2,-0.15, 0.35,-0.2], [0.35,-0.2, 0.5,-0.1], [0.5,-0.1, 0.5,0.1], [0.5,0.1, 0.35,0.2], [0.35,0.2, 0.2,-0.15]] 
             }
         };
+
+        function initZodiacChart() {
+            const items = document.querySelectorAll('.zodiac-ref-item');
+            items.forEach(item => {
+                const type = item.getAttribute('data-type');
+                const canvas = item.querySelector('.zodiac-ref-canvas');
+                const ctx = canvas.getContext('2d');
+                const lines = CONSTELLATIONS[type].lines;
+                
+                ctx.clearRect(0, 0, 150, 150);
+                
+                ctx.strokeStyle = "#ffffff";
+                ctx.lineWidth = 2.5; // Back to normal thickness
+                ctx.lineCap = "round";
+                ctx.lineJoin = "round";
+                const scale = 100; // Increased scale to make the map larger
+                const offX = 75;
+                const offY = 75;
+                
+                ctx.beginPath();
+                lines.forEach(line => {
+                    ctx.moveTo(line[0]*scale + offX, -line[1]*scale + offY); 
+                    ctx.lineTo(line[2]*scale + offX, -line[3]*scale + offY);
+                });
+                ctx.stroke();
+
+                // Draw dots
+                ctx.fillStyle = "#ffffff";
+                lines.forEach(line => {
+                    [0, 2].forEach(idx => {
+                        ctx.beginPath();
+                        ctx.arc(line[idx]*scale + offX, -line[idx+1]*scale + offY, 3, 0, Math.PI*2);
+                        ctx.fill();
+                    });
+                });
+            });
+        }
+        
+        // Call it after constellations are defined
+        initZodiacChart();
 
         function getRandomLevels() {
             const keys = Object.keys(CONSTELLATIONS);
@@ -810,6 +924,7 @@
             levelTransition: false, 
             velocity: new THREE.Vector3(),
             onGround: true,
+            haunting: false,
             torchFlameParticles: null,
             startTime: 0,
             gameActive: false,
@@ -917,7 +1032,6 @@
             document.getElementById('match-display').style.display = 'none';
             document.getElementById('match-display').innerText = '契合度: 0%';
             document.getElementById('timer-display').innerText = '00:00';
-            document.getElementById('objective').innerText = '目標：...';
             
             // Reset Tools
             clearCanvas(false);
@@ -1101,12 +1215,51 @@
         document.getElementById('tool-redo').addEventListener('click', () => { if (drawingState.historyStep < drawingState.history.length - 1) { drawingState.historyStep++; restoreHistory(); } });
         
         // --- Reference Shape ---
-        const refCanvas = document.getElementById('reference-canvas');
+        const refCanvas = document.createElement('canvas');
+        refCanvas.width = 512; refCanvas.height = 512;
         const refCtx = refCanvas.getContext('2d');
+        let refData = null;
+
+        function prepareRefData(runeType) {
+            const data = CONSTELLATIONS[runeType];
+            const lines = data.lines;
+            
+            refCtx.clearRect(0, 0, 512, 512);
+            refCtx.fillStyle = "white";
+            
+            // Draw lines for validation (Thick for easier matching)
+            if (lines && lines.length > 0) {
+                refCtx.strokeStyle = "white";
+                refCtx.lineWidth = 75; // Even thicker lines for easier matching
+                refCtx.lineCap = "round";
+                refCtx.lineJoin = "round";
+                const scale = 320; // Increased scale for easier success
+                const offX = 256;
+                const offY = 256;
+                
+                refCtx.beginPath();
+                lines.forEach(line => {
+                    refCtx.moveTo(line[0]*scale + offX, -line[1]*scale + offY); 
+                    refCtx.lineTo(line[2]*scale + offX, -line[3]*scale + offY);
+                });
+                refCtx.stroke();
+            }
+            
+            refData = refCtx.getImageData(0, 0, 512, 512).data;
+            
+            state.refPixelCount = 0;
+            for(let y=0; y<512; y+=10) {
+                for(let x=0; x<512; x+=10) {
+                    if(refData[(y * 512 + x) * 4] > 128) state.refPixelCount++;
+                }
+            }
+        }
+
         const factCanvas = document.getElementById('fact-canvas');
         const factCtx = factCanvas.getContext('2d');
 
-        function drawConstellation(context, width, height, lines, color, isStunning) {
+        function drawConstellation(context, width, height, lines, color, isStunning, symbol, hideDetails = false) {
+            if (!context) return;
             context.clearRect(0, 0, width, height);
             
             if (isStunning) {
@@ -1125,10 +1278,20 @@
                     context.arc(Math.random()*width, Math.random()*height, Math.random()*1.5, 0, Math.PI*2);
                     context.fill();
                 }
-            } else if (context === refCtx) {
-                 context.fillStyle = "#222";
-                 context.fillRect(0,0,width,height);
+
+                // Draw Symbol
+                if (symbol) {
+                    context.save();
+                    context.font = `${width * 0.7}px "Arial"`; // No bold
+                    context.textAlign = "center";
+                    context.textBaseline = "middle";
+                    context.fillStyle = "rgba(255, 255, 255, 1.0)";
+                    context.fillText(symbol, width/2, height/2);
+                    context.restore();
+                }
             }
+
+            if (hideDetails) return; // Skip lines and stars
 
             context.strokeStyle = color; 
             context.lineWidth = isStunning ? 4 : 3; 
@@ -1172,11 +1335,7 @@
         }
 
         function updateReferenceShape() {
-            if (!state.levels[state.currentLevel]) return; 
-            const level = state.levels[state.currentLevel];
-            if(level.type !== 'win') {
-                drawConstellation(refCtx, 150, 150, level.lines, "#ffaa00", false);
-            }
+            // No longer providing reference shape to student
         }
         
         // --- TUTORIAL ANIMATION ---
@@ -1524,6 +1683,9 @@
 
         let currentDoorObj = null;
         function createDoor(zPos, runeType, lines) {
+            const levelData = CONSTELLATIONS[runeType];
+            const hint = levelData ? levelData.hint : "未知挑戰";
+            
             const g = new THREE.Group(); g.position.set(0, -2.5, zPos);
             const frame = new THREE.Mesh(new THREE.BoxGeometry(5,6,1), new THREE.MeshStandardMaterial({color:0x111}));
             frame.position.y=3; frame.castShadow=true; frame.receiveShadow=true; g.add(frame);
@@ -1531,16 +1693,30 @@
             door.position.set(0,3,0.51); door.receiveShadow=true; g.add(door);
             
             const rc = document.createElement('canvas'); rc.width=256; rc.height=256; const ctx=rc.getContext('2d');
-            ctx.strokeStyle="#00ffff"; ctx.lineWidth=15; ctx.shadowColor="#00ffff"; ctx.shadowBlur=20; ctx.lineCap = "round";
-            ctx.beginPath();
-            lines.forEach(line => {
-                const scale = 120; const off = 128;
-                ctx.moveTo(line[0]*scale + off, -line[1]*scale + off);
-                ctx.lineTo(line[2]*scale + off, -line[3]*scale + off);
-            });
-            ctx.stroke();
             
-            const rune = new THREE.Mesh(new THREE.PlaneGeometry(2.5,2.5), new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(rc), transparent:true, blending:THREE.AdditiveBlending}));
+            // Simplified Black Text Rendering
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillStyle = "#000000"; // Solid Black
+            
+            // Draw Hint - Small
+            ctx.font = '24px "Microsoft JhengHei"'; 
+            ctx.fillStyle = "#000000";
+            ctx.fillText(hint, 128, 100); // Moved to a more central position
+            
+            // Draw "之門" - Large
+            ctx.font = '32px "Microsoft JhengHei"'; 
+            ctx.fillText("之門", 128, 160); // Moved to a more central position
+
+            // Draw generic background stars
+            ctx.fillStyle = "rgba(0, 0, 0, 0.1)"; 
+            for(let i=0; i<12; i++) {
+                ctx.beginPath();
+                ctx.arc(Math.random()*256, Math.random()*256, 1.5, 0, Math.PI*2);
+                ctx.fill();
+            }
+            
+            const rune = new THREE.Mesh(new THREE.PlaneGeometry(2.5,2.5), new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(rc), transparent:true, blending:THREE.NormalBlending}));
             rune.position.set(0,3,0.52); g.add(rune);
             return { group:g, door:door };
         }
@@ -1590,11 +1766,21 @@
         document.getElementById('arm-slider').addEventListener('input', (e)=>{state.armExtension=parseFloat(e.target.value); playSound('slide'); validateShadow();});
         document.getElementById('btn-modal-done').addEventListener('click', closeDrawingModal);
         document.getElementById('btn-modal-clear').addEventListener('click', ()=>{clearCanvas(); playSound('click');});
+        
+        let currentUser = "";
+
         document.getElementById('start-btn').addEventListener('click', () => { 
+            const info = document.getElementById('student-info').value.trim();
+            if(!info) {
+                alert("請輸入班別學號！");
+                return;
+            }
+            currentUser = info;
             document.getElementById('intro').style.display = 'none'; 
             document.getElementById('tutorial-modal').style.display = 'flex'; // Show tutorial after intro
             requestAnimationFrame(animateTutorial); // Start tutorial animation
         });
+
         document.getElementById('btn-tutorial-start').addEventListener('click', () => {
             document.getElementById('tutorial-modal').style.display = 'none';
             state.levels = getRandomLevels();
@@ -1602,15 +1788,32 @@
             const z=state.levelZ[0];
             currentDoorObj = createDoor(z, state.levels[0].type, state.levels[0].lines);
             scene.add(currentDoorObj.group);
-            document.getElementById('objective').innerText="目標: "+state.levels[0].name;
             state.startTime = Date.now();
             state.gameActive = true;
             if(audioCtx.state === 'suspended') audioCtx.resume(); 
             playSound('click'); 
         });
 
-        document.getElementById('restart-btn').addEventListener('click', resetGame);
-        document.getElementById('btn-exit').addEventListener('click', resetGame);
+        window.resetGameToHome = function() {
+            window.location.href = '../index.html';
+        }
+
+        window.playAgainSameUser = function() {
+            document.getElementById('victory-screen').style.display = 'none';
+            resetGame();
+            // Start the game immediately
+            document.getElementById('start-btn').click();
+        }
+
+        window.playAgainNewUser = function() {
+            document.getElementById('victory-screen').style.display = 'none';
+            document.getElementById('student-info').value = "";
+            currentUser = "";
+            resetGame();
+        }
+
+        document.getElementById('restart-btn').addEventListener('click', playAgainSameUser);
+        document.getElementById('btn-exit').addEventListener('click', resetGameToHome);
         document.getElementById('btn-fact-continue').addEventListener('click', () => {
             document.getElementById('fact-modal').style.display = 'none';
             state.gameActive = true;
@@ -1705,49 +1908,75 @@
             const doorZ = state.levelZ[state.currentLevel];
             const currentLevelData = state.levels[state.currentLevel];
             
+            // Ensure refData is ready for the current type
+            if (!refData || state.lastRefType !== currentLevelData.type) {
+                prepareRefData(currentLevelData.type);
+                state.lastRefType = currentLevelData.type;
+            }
+
             const mag = Math.abs(camera.position.z - (doorZ+0.52)) / (state.armExtension+0.01);
             
             const targetPos = new THREE.Vector3(0, 0.5, doorZ); targetPos.project(camera);
             const alignDist = Math.sqrt(targetPos.x**2 + targetPos.y**2);
-            let alignFactor = 1.0; if(alignDist>0.4) alignFactor = Math.max(0, 1.0 - (alignDist-0.4)*1.5);
+            
+            // Extremely generous alignment factor
+            let alignFactor = 1.0; 
+            if(alignDist > 0.6) alignFactor = Math.max(0.5, 1.0 - (alignDist-0.6));
 
-            let hits = 0; let misses = 0;
+            let misses = 0;
             const pxToNorm = 1.0 / 256.0; 
-            const lines = currentLevelData.lines;
-            let totalLineLen = 0;
-            lines.forEach(l => { totalLineLen += Math.sqrt((l[0]-l[2])**2 + (l[1]-l[3])**2); });
-            
-            const thickness = 0.45; 
-            
+            const hitMap = new Set(); // Track UNIQUE target pixels hit
+
             for(let y=0; y<h; y+=step) {
                 for(let x=0; x<w; x+=step) {
                     if(img[(y*w+x)*4+3]>150) {
                         const u = (x - 256) * pxToNorm * mag * 0.4;
                         const v = -(y - 256) * pxToNorm * mag * 0.4;
-                        let minD = 999;
-                        for(let l of lines) {
-                            const d = distToSegmentSquared({x:u, y:v}, {x:l[0], y:l[1]}, {x:l[2], y:l[3]});
-                            if(d < minD) minD = d;
+                        
+                        const rx = Math.floor((u / 1.25) * 256 + 256);
+                        const ry = Math.floor((-v / 1.25) * 256 + 256);
+                        
+                        if (rx >= 0 && rx < 512 && ry >= 0 && ry < 512) {
+                            if (refData[(ry * 512 + rx) * 4] > 128) {
+                                // Record hit on a 10px grid to match refPixelCount logic
+                                const gridKey = Math.floor(ry/10) * 100 + Math.floor(rx/10);
+                                hitMap.add(gridKey); 
+                            } else {
+                                misses++;
+                            }
+                        } else {
+                            misses++;
                         }
-                        if(Math.sqrt(minD) < thickness) hits++; else misses++;
                     }
                 }
             }
 
-            if(totalLineLen === 0) return;
-            const demoninator = Math.max(10, hits + misses * 0.5); 
-            let ratio = (hits - misses * 0.1) / demoninator;
-            let rawScore = Math.max(0, ratio * 100);
-            const estimatedHits = totalLineLen * 200 / mag;
-            const coverage = Math.min(1, hits / Math.max(1, estimatedHits));
-            let finalScore = rawScore * (0.6 + 0.4*coverage);
-            if (hits > 20 && misses < hits) finalScore += 30; 
-            finalScore = Math.min(100, Math.floor(finalScore * alignFactor));
+            const uniqueHits = hitMap.size;
+            
+            // Coverage: Lowered requirement to 35% for a perfect coverage score
+            const coverage = Math.min(1.0, uniqueHits / Math.max(1, state.refPixelCount * 0.35));
+            
+            // Precision: Ratio of hits to total shadow pixels cast
+            // Greatly reduced penalty (1.2) to make it much easier for students
+            const precision = uniqueHits / Math.max(1, uniqueHits + misses * 1.2); 
+
+            // Density Check: More lenient (8x)
+            const totalShadowPixels = uniqueHits + misses;
+            let densityFactor = 1.0;
+            if (totalShadowPixels > uniqueHits * 8) densityFactor = 0.8;
+
+            // Calculate raw score
+            let rawScore = (coverage * 0.7 + precision * 0.3) * 100 * densityFactor;
+            
+            // Final adjustments
+            let finalScore = Math.min(100, Math.floor(rawScore * alignFactor));
 
             const md = document.getElementById('match-display');
             md.innerText = `契合度: ${finalScore}%`;
-            md.style.color = finalScore<50?'#ff4444':(finalScore<70?'#ffff00':'#00ff00');
-            if(finalScore>70) levelComplete();
+            md.style.color = finalScore<40?'#ff4444':(finalScore<50?'#ffff00':'#00ff00');
+            
+            // Pass threshold lowered to 50%
+            if(finalScore >= 50) levelComplete();
         }
 
         function levelComplete() {
@@ -1761,8 +1990,9 @@
                 const level = state.levels[state.currentLevel];
                 document.getElementById('fact-title').innerText = level.name;
                 document.getElementById('fact-text').innerText = level.fact;
-                document.getElementById('fact-symbol').innerText = level.symbol;
-                drawConstellation(factCtx, 250, 250, level.lines, "#ffaa00", true); 
+                const factCanvas = document.getElementById('fact-canvas');
+                const factCtx = factCanvas.getContext('2d');
+                drawConstellation(factCtx, 250, 250, level.lines, "#ffaa00", true, level.symbol, true); 
                 document.getElementById('fact-modal').style.display = 'flex';
             }, 1000);
         }
@@ -1782,9 +2012,7 @@
                 const z=state.levelZ[state.currentLevel];
                 currentDoorObj = createDoor(z, state.levels[state.currentLevel].type, state.levels[state.currentLevel].lines);
                 scene.add(currentDoorObj.group);
-                document.getElementById('objective').innerText="目標: "+state.levels[state.currentLevel].name;
             } else {
-                document.getElementById('objective').innerText="尋找聖杯";
                 createTreasure();
             }
         }
